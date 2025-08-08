@@ -58,6 +58,8 @@ export interface Lead {
     id: number;
     total_price: number;
     selected_tier: string;
+    roof_size_sqft: number;
+    price_per_sqft: number;
     created_at: string;
   };
 }

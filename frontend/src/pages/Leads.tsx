@@ -1,6 +1,6 @@
 import Card from '../components/Card';
 import Modal from '../components/Modal';
-import { Search, Filter, Calendar, Download, Phone, Mail, MapPin, MoreVertical, Eye, FileText, Edit2, Trash2, X, Check } from 'lucide-react';
+import { Search, Filter, Calendar, Download, Save, Phone, Mail, MapPin, MoreVertical, Eye, FileText, Edit2, Trash2, X, Check } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { leadAPI } from '../services/api';
 import type { Lead } from '../services/api';
@@ -21,6 +21,7 @@ const Leads = () => {
   const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<Lead | null>(null);
   const dropdownRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
+  const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
   useEffect(() => {
     fetchLeads();
@@ -190,20 +191,68 @@ const Leads = () => {
     setOpenDropdownId(null);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (selectedLead) {
-      setLeads(leads.filter(l => l.id !== selectedLead.id));
-      setTotalLeads(prev => Math.max(0, prev - 1));
-      setDeleteModalOpen(false);
-      setSelectedLead(null);
+      try {
+        // Make API call to delete lead
+        await leadAPI.deleteLead(selectedLead.id);
+        
+        // Update local state
+        setLeads(leads.filter(l => l.id !== selectedLead.id));
+        setTotalLeads(prev => Math.max(0, prev - 1));
+        setDeleteModalOpen(false);
+        setSelectedLead(null);
+        
+        // Show success notification
+        setNotification({ type: 'success', message: 'Lead deleted successfully!' });
+        setTimeout(() => setNotification(null), 3000);
+      } catch (error) {
+        console.error('Error deleting lead:', error);
+        // In case of API failure, still delete locally for demo purposes
+        setLeads(leads.filter(l => l.id !== selectedLead.id));
+        setTotalLeads(prev => Math.max(0, prev - 1));
+        setDeleteModalOpen(false);
+        setSelectedLead(null);
+        
+        // Show error notification
+        setNotification({ type: 'error', message: 'Failed to delete from database. Removed locally.' });
+        setTimeout(() => setNotification(null), 3000);
+      }
     }
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (editForm) {
-      setLeads(leads.map(l => l.id === editForm.id ? editForm : l));
-      setEditModalOpen(false);
-      setEditForm(null);
+      try {
+        // Make API call to update lead
+        const updatedLead = await leadAPI.updateLead(editForm.id, {
+          name: editForm.name,
+          email: editForm.email,
+          phone: editForm.phone,
+          address: editForm.address,
+          status: editForm.status,
+          notes: editForm.notes,
+        });
+        
+        // Update local state with the response from server
+        setLeads(leads.map(l => l.id === updatedLead.id ? updatedLead : l));
+        setEditModalOpen(false);
+        setEditForm(null);
+        
+        // Show success notification
+        setNotification({ type: 'success', message: 'Lead updated successfully!' });
+        setTimeout(() => setNotification(null), 3000);
+      } catch (error) {
+        console.error('Error updating lead:', error);
+        // In case of API failure, still update locally for demo purposes
+        setLeads(leads.map(l => l.id === editForm.id ? editForm : l));
+        setEditModalOpen(false);
+        setEditForm(null);
+        
+        // Show error notification
+        setNotification({ type: 'error', message: 'Failed to save to database. Changes saved locally.' });
+        setTimeout(() => setNotification(null), 3000);
+      }
     }
   };
 
@@ -250,6 +299,24 @@ const Leads = () => {
     <div>
       <h2 className="text-2xl font-bold text-gray-900 mb-2">Lead Management</h2>
       <p className="text-gray-600 mb-8">Track and manage your widget-generated leads</p>
+
+      {notification && (
+        <div className={`mb-4 p-4 rounded-lg flex items-center justify-between ${
+          notification.type === 'success' 
+            ? 'bg-green-50 border border-green-200 text-green-800'
+            : 'bg-red-50 border border-red-200 text-red-800'
+        }`}>
+          <span className="flex items-center">
+            {notification.type === 'success' ? '✓' : '⚠'} {notification.message}
+          </span>
+          <button 
+            onClick={() => setNotification(null)}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <Card>
         <div className="mb-6">
@@ -694,7 +761,7 @@ const Leads = () => {
                 type="submit"
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
               >
-                <Check className="w-4 h-4" />
+                <Save className="w-4 h-4" />
                 Save Changes
               </button>
             </div>
