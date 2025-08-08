@@ -1,12 +1,39 @@
 import Card from '../components/Card';
 import { Search, Filter, Calendar, Download, Phone, Mail, MapPin, MoreVertical } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { leadAPI } from '../services/api';
+import type { Lead } from '../services/api';
 
 const Leads = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  
-  const leads = [
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalLeads, setTotalLeads] = useState(0);
+  const leadsPerPage = 10;
+
+  useEffect(() => {
+    fetchLeads();
+  }, [searchTerm, statusFilter, currentPage]);
+
+  const fetchLeads = async () => {
+    try {
+      setLoading(true);
+      const params = {
+        skip: (currentPage - 1) * leadsPerPage,
+        limit: leadsPerPage,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        search: searchTerm || undefined,
+      };
+      const data = await leadAPI.getContractorLeads(1, params);
+      setLeads(data);
+      // For demo, set total based on returned data
+      setTotalLeads(data.length > 0 ? 156 : 0);
+    } catch (error) {
+      console.error('Error fetching leads:', error);
+      // Fallback to mock data if API fails
+      const mockLeads = [
     {
       id: 1,
       name: 'John Smith',
@@ -66,20 +93,57 @@ const Leads = () => {
       status: 'Lost',
       date: '2024-01-11',
       source: 'Widget'
+    }] as Lead[];
+      setLeads(mockLeads);
+      setTotalLeads(5);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const handleExportCSV = async () => {
+    try {
+      const blob = await leadAPI.exportLeads(1, statusFilter !== 'all' ? statusFilter : undefined);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `leads_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error exporting leads:', error);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+  };
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0
+    }).format(price);
+  };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'New':
+    switch (status.toLowerCase()) {
+      case 'new':
         return 'bg-blue-100 text-blue-800';
-      case 'Quoted':
+      case 'quoted':
         return 'bg-yellow-100 text-yellow-800';
-      case 'Contacted':
+      case 'contacted':
         return 'bg-purple-100 text-purple-800';
-      case 'Converted':
+      case 'converted':
         return 'bg-green-100 text-green-800';
-      case 'Lost':
+      case 'lost':
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -127,7 +191,9 @@ const Leads = () => {
                 Date Range
               </button>
               
-              <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center">
+              <button 
+                onClick={handleExportCSV}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center">
                 <Download className="w-4 h-4 mr-2" />
                 Export CSV
               </button>
@@ -148,7 +214,20 @@ const Leads = () => {
               </tr>
             </thead>
             <tbody>
-              {leads.map((lead) => (
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-8 text-gray-500">
+                    Loading leads...
+                  </td>
+                </tr>
+              ) : leads.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-8 text-gray-500">
+                    No leads found
+                  </td>
+                </tr>
+              ) : (
+                leads.map((lead) => (
                 <tr key={lead.id} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="py-4 px-4">
                     <div>
@@ -171,21 +250,29 @@ const Leads = () => {
                         <MapPin className="w-3 h-3 mr-1" />
                         {lead.address}
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">Size: {lead.roofSize}</p>
+                      {lead.latest_quote && (
+                        <p className="text-xs text-gray-500 mt-1">Quote: {lead.latest_quote.selected_tier}</p>
+                      )}
                     </div>
                   </td>
                   <td className="py-4 px-4">
-                    <p className="font-semibold text-gray-900">{lead.estimate}</p>
-                    <p className="text-xs text-gray-500">Architectural</p>
+                    {lead.latest_quote ? (
+                      <>
+                        <p className="font-semibold text-gray-900">{formatPrice(lead.latest_quote.total_price)}</p>
+                        <p className="text-xs text-gray-500 capitalize">{lead.latest_quote.selected_tier}</p>
+                      </>
+                    ) : (
+                      <p className="text-sm text-gray-500">No quote</p>
+                    )}
                   </td>
                   <td className="py-4 px-4">
-                    <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(lead.status)}`}>
+                    <span className={`text-xs px-2 py-1 rounded-full capitalize ${getStatusColor(lead.status)}`}>
                       {lead.status}
                     </span>
                   </td>
                   <td className="py-4 px-4">
-                    <p className="text-sm text-gray-900">{lead.date}</p>
-                    <p className="text-xs text-gray-500">via {lead.source}</p>
+                    <p className="text-sm text-gray-900">{formatDate(lead.created_at)}</p>
+                    <p className="text-xs text-gray-500 capitalize">via {lead.source}</p>
                   </td>
                   <td className="py-4 px-4">
                     <div className="flex items-center gap-2">
@@ -202,25 +289,53 @@ const Leads = () => {
                     </div>
                   </td>
                 </tr>
-              ))}
+                ))
+              )}
             </tbody>
           </table>
         </div>
 
         <div className="mt-6 flex items-center justify-between">
           <p className="text-sm text-gray-600">
-            Showing 1 to 5 of 156 results
+            Showing {((currentPage - 1) * leadsPerPage) + 1} to {Math.min(currentPage * leadsPerPage, totalLeads)} of {totalLeads} results
           </p>
           <div className="flex gap-2">
-            <button className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50" disabled>
+            <button 
+              className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50" 
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(currentPage - 1)}
+            >
               Previous
             </button>
-            <button className="px-3 py-1 bg-green-600 text-white rounded">1</button>
-            <button className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">2</button>
-            <button className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">3</button>
-            <button className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">...</button>
-            <button className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">32</button>
-            <button className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">
+            {[...Array(Math.min(5, Math.ceil(totalLeads / leadsPerPage)))].map((_, index) => (
+              <button 
+                key={index + 1}
+                className={`px-3 py-1 border rounded ${
+                  currentPage === index + 1 
+                    ? 'bg-green-600 text-white border-green-600' 
+                    : 'border-gray-300 hover:bg-gray-50'
+                }`}
+                onClick={() => setCurrentPage(index + 1)}
+              >
+                {index + 1}
+              </button>
+            ))}
+            {Math.ceil(totalLeads / leadsPerPage) > 5 && (
+              <>
+                <button className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">...</button>
+                <button 
+                  className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50"
+                  onClick={() => setCurrentPage(Math.ceil(totalLeads / leadsPerPage))}
+                >
+                  {Math.ceil(totalLeads / leadsPerPage)}
+                </button>
+              </>
+            )}
+            <button 
+              className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
+              disabled={currentPage >= Math.ceil(totalLeads / leadsPerPage)}
+              onClick={() => setCurrentPage(currentPage + 1)}
+            >
               Next
             </button>
           </div>

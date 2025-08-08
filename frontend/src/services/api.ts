@@ -42,6 +42,33 @@ export interface TemplateData {
   terms_conditions?: string;
 }
 
+export interface Lead {
+  id: number;
+  name: string;
+  email: string;
+  phone?: string;
+  address: string;
+  status: string;
+  source: string;
+  notes?: string;
+  contractor_id: number;
+  created_at: string;
+  updated_at?: string;
+  latest_quote?: {
+    id: number;
+    total_price: number;
+    selected_tier: string;
+    created_at: string;
+  };
+}
+
+export interface DashboardStats {
+  totalLeads: number;
+  pendingQuotes: number;
+  totalRevenue: number;
+  conversionRate: number;
+}
+
 export const pricingAPI = {
   get: async (contractorId: number = DEFAULT_CONTRACTOR_ID) => {
     const response = await api.get(`/pricing/contractor/${contractorId}`);
@@ -85,6 +112,50 @@ export const templateAPI = {
   },
   preview: async (contractorId: number = DEFAULT_CONTRACTOR_ID) => {
     const response = await api.get(`/templates/contractor/${contractorId}/preview`);
+    return response.data;
+  },
+};
+
+export const leadAPI = {
+  getContractorLeads: async (contractorId: number = DEFAULT_CONTRACTOR_ID, params?: {
+    skip?: number;
+    limit?: number;
+    status?: string;
+    search?: string;
+  }) => {
+    const response = await api.get<Lead[]>(`/leads/contractor/${contractorId}`, { params });
+    return response.data;
+  },
+  getLead: async (leadId: number) => {
+    const response = await api.get<Lead>(`/leads/${leadId}`);
+    return response.data;
+  },
+  updateLead: async (leadId: number, data: Partial<Lead>) => {
+    const response = await api.put<Lead>(`/leads/${leadId}`, data);
+    return response.data;
+  },
+  deleteLead: async (leadId: number) => {
+    const response = await api.delete(`/leads/${leadId}`);
+    return response.data;
+  },
+  exportLeads: async (contractorId: number = DEFAULT_CONTRACTOR_ID, status?: string) => {
+    const response = await api.get(`/leads/contractor/${contractorId}/export`, {
+      params: { status },
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+};
+
+export const analyticsAPI = {
+  getDashboardStats: async (contractorId: number = DEFAULT_CONTRACTOR_ID) => {
+    const response = await api.get<DashboardStats>(`/analytics/dashboard/${contractorId}`);
+    return response.data;
+  },
+  getRecentLeads: async (contractorId: number = DEFAULT_CONTRACTOR_ID, limit: number = 5) => {
+    const response = await api.get<Lead[]>(`/leads/contractor/${contractorId}`, {
+      params: { limit, skip: 0 }
+    });
     return response.data;
   },
 };
