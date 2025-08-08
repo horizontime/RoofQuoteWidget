@@ -125,9 +125,6 @@ const Branding = () => {
         <div className="space-y-6">
           <Card title="Company Name">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Company Name
-              </label>
               <input
                 type="text"
                 value={companyName}
@@ -135,7 +132,6 @@ const Branding = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                 placeholder="Enter your company name..."
               />
-              <p className="text-xs text-gray-500 mt-1">This will appear as the subheading in your PDF proposals</p>
             </div>
           </Card>
 
