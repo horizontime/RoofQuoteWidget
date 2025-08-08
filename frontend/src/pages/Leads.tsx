@@ -1,13 +1,13 @@
 import Card from '../components/Card';
 import Modal from '../components/Modal';
-import { Search, Filter, Calendar, Download, Save, Phone, Mail, MapPin, MoreVertical, Eye, FileText, Edit2, Trash2, X, Check } from 'lucide-react';
+import { Search, Filter, Calendar, Download, Save, Phone, Mail, MapPin, MoreVertical, Eye, FileText, Edit2, Trash2 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { leadAPI } from '../services/api';
 import type { Lead } from '../services/api';
 import { generateQuotePDF, type QuoteData } from '../utils/pdfGenerator';
-import { DayPicker } from 'react-day-picker';
+import { DayPicker, type DateRange } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
-import { format } from 'date-fns';
+import { format, startOfDay, endOfDay } from 'date-fns';
 
 const Leads = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -25,13 +25,27 @@ const Leads = () => {
   const [editForm, setEditForm] = useState<Lead | null>(null);
   const dropdownRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
-  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({ from: undefined, to: undefined });
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [tempDateRange, setTempDateRange] = useState<DateRange | undefined>(undefined);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const datePickerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     fetchLeads();
   }, [searchTerm, statusFilter, currentPage, dateRange]);
+
+  const filterLeadsByDateRange = (inputLeads: Lead[], range?: DateRange): Lead[] => {
+    if (!range || (!range.from && !range.to)) return inputLeads;
+    const fromDate = range.from ? startOfDay(range.from) : undefined;
+    const toDate = range.to ? endOfDay(range.to) : undefined;
+    return inputLeads.filter((lead) => {
+      const created = new Date(lead.created_at);
+      if (Number.isNaN(created.getTime())) return false;
+      if (fromDate && created < fromDate) return false;
+      if (toDate && created > toDate) return false;
+      return true;
+    });
+  };
 
   const fetchLeads = async () => {
     try {
@@ -41,79 +55,118 @@ const Leads = () => {
         limit: leadsPerPage,
         status: statusFilter !== 'all' ? statusFilter : undefined,
         search: searchTerm || undefined,
-        date_from: dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined,
-        date_to: dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
       };
       const data = await leadAPI.getContractorLeads(1, params);
-      setLeads(data);
-      // For demo, set total based on returned data
-      setTotalLeads(data.length);
+      const filtered = filterLeadsByDateRange(data, dateRange);
+      setLeads(filtered);
+      // For demo, set total based on filtered data
+      setTotalLeads(filtered.length);
     } catch (error) {
       console.error('Error fetching leads:', error);
       // Fallback to mock data if API fails
-      const mockLeads = [
-    {
-      id: 1,
-      name: 'John Smith',
-      email: 'john.smith@email.com',
-      phone: '(555) 123-4567',
-      address: '123 Oak Street, Springfield, IL 62701',
-      roofSize: '2,500 sq ft',
-      estimate: '$21,875',
-      status: 'New',
-      date: '2024-01-15',
-      source: 'Widget'
-    },
-    {
-      id: 2,
-      name: 'Sarah Johnson',
-      email: 'sarah.j@email.com',
-      phone: '(555) 234-5678',
-      address: '456 Pine Avenue, Springfield, IL 62702',
-      roofSize: '3,200 sq ft',
-      estimate: '$28,000',
-      status: 'Quoted',
-      date: '2024-01-14',
-      source: 'Widget'
-    },
-    {
-      id: 3,
-      name: 'Mike Davis',
-      email: 'mdavis@email.com',
-      phone: '(555) 345-6789',
-      address: '789 Elm Drive, Springfield, IL 62703',
-      roofSize: '1,800 sq ft',
-      estimate: '$15,750',
-      status: 'Contacted',
-      date: '2024-01-13',
-      source: 'Widget'
-    },
-    {
-      id: 4,
-      name: 'Emily Brown',
-      email: 'emily.brown@email.com',
-      phone: '(555) 456-7890',
-      address: '321 Maple Lane, Springfield, IL 62704',
-      roofSize: '2,100 sq ft',
-      estimate: '$18,375',
-      status: 'Converted',
-      date: '2024-01-12',
-      source: 'Widget'
-    },
-    {
-      id: 5,
-      name: 'Robert Wilson',
-      email: 'r.wilson@email.com',
-      phone: '(555) 567-8901',
-      address: '654 Cedar Road, Springfield, IL 62705',
-      roofSize: '2,800 sq ft',
-      estimate: '$24,500',
-      status: 'Lost',
-      date: '2024-01-11',
-      source: 'Widget'
-    }] as Lead[];
-      setLeads(mockLeads);
-      setTotalLeads(mockLeads.length);
+      const mockLeads: Lead[] = [
+        {
+          id: 1,
+          name: 'John Smith',
+          email: 'john.smith@email.com',
+          phone: '(555) 123-4567',
+          address: '123 Oak Street, Springfield, IL 62701',
+          status: 'new',
+          source: 'widget',
+          notes: undefined,
+          contractor_id: 1,
+          created_at: '2024-01-15T00:00:00.000Z',
+          updated_at: '2024-01-15T00:00:00.000Z',
+          latest_quote: {
+            id: 101,
+            total_price: 21875,
+            selected_tier: 'better',
+            roof_size_sqft: 2500,
+            price_per_sqft: 8.75,
+            created_at: '2024-01-15T00:00:00.000Z',
+          },
+        },
+        {
+          id: 2,
+          name: 'Sarah Johnson',
+          email: 'sarah.j@email.com',
+          phone: '(555) 234-5678',
+          address: '456 Pine Avenue, Springfield, IL 62702',
+          status: 'quoted',
+          source: 'widget',
+          notes: undefined,
+          contractor_id: 1,
+          created_at: '2024-01-14T00:00:00.000Z',
+          updated_at: '2024-01-14T00:00:00.000Z',
+          latest_quote: {
+            id: 102,
+            total_price: 28000,
+            selected_tier: 'best',
+            roof_size_sqft: 3200,
+            price_per_sqft: 8.75,
+            created_at: '2024-01-14T00:00:00.000Z',
+          },
+        },
+        {
+          id: 3,
+          name: 'Mike Davis',
+          email: 'mdavis@email.com',
+          phone: '(555) 345-6789',
+          address: '789 Elm Drive, Springfield, IL 62703',
+          status: 'contacted',
+          source: 'widget',
+          notes: undefined,
+          contractor_id: 1,
+          created_at: '2024-01-13T00:00:00.000Z',
+          updated_at: '2024-01-13T00:00:00.000Z',
+          latest_quote: {
+            id: 103,
+            total_price: 15750,
+            selected_tier: 'good',
+            roof_size_sqft: 1800,
+            price_per_sqft: 8.75,
+            created_at: '2024-01-13T00:00:00.000Z',
+          },
+        },
+        {
+          id: 4,
+          name: 'Emily Brown',
+          email: 'emily.brown@email.com',
+          phone: '(555) 456-7890',
+          address: '321 Maple Lane, Springfield, IL 62704',
+          status: 'converted',
+          source: 'widget',
+          notes: undefined,
+          contractor_id: 1,
+          created_at: '2024-01-12T00:00:00.000Z',
+          updated_at: '2024-01-12T00:00:00.000Z',
+          latest_quote: {
+            id: 104,
+            total_price: 18375,
+            selected_tier: 'better',
+            roof_size_sqft: 2100,
+            price_per_sqft: 8.75,
+            created_at: '2024-01-12T00:00:00.000Z',
+          },
+        },
+        {
+          id: 5,
+          name: 'Robert Wilson',
+          email: 'r.wilson@email.com',
+          phone: '(555) 567-8901',
+          address: '654 Cedar Road, Springfield, IL 62705',
+          status: 'lost',
+          source: 'widget',
+          notes: undefined,
+          contractor_id: 1,
+          created_at: '2024-01-11T00:00:00.000Z',
+          updated_at: '2024-01-11T00:00:00.000Z',
+          latest_quote: undefined,
+        },
+      ];
+      const filtered = filterLeadsByDateRange(mockLeads, dateRange);
+      setLeads(filtered);
+      setTotalLeads(filtered.length);
     } finally {
       setLoading(false);
     }
@@ -281,7 +334,7 @@ const Leads = () => {
     const quoteData: QuoteData = {
       leadName: lead.name,
       leadEmail: lead.email,
-      leadPhone: lead.phone,
+      leadPhone: lead.phone ?? '',
       address: lead.address,
       roofSize: lead.latest_quote?.roof_size_sqft ? `${lead.latest_quote.roof_size_sqft} sq ft` : '2,500 sq ft',
       selectedTier: lead.latest_quote?.selected_tier || 'Better',
@@ -372,14 +425,17 @@ const Leads = () => {
               
               <div className="relative" ref={datePickerRef}>
                 <button 
-                  onClick={() => setShowDatePicker(!showDatePicker)}
+                  onClick={() => {
+                    setTempDateRange(dateRange);
+                    setShowDatePicker(!showDatePicker);
+                  }}
                   className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center">
                   <Calendar className="w-4 h-4 mr-2" />
-                  {dateRange.from || dateRange.to ? (
+                  {dateRange?.from || dateRange?.to ? (
                     <span>
-                      {dateRange.from && format(dateRange.from, 'MMM dd')} 
-                      {dateRange.from && dateRange.to && ' - '}
-                      {dateRange.to && format(dateRange.to, 'MMM dd')}
+                  {dateRange?.from && format(dateRange.from, 'MMM dd')} 
+                  {dateRange?.from && dateRange?.to && ' - '}
+                  {dateRange?.to && format(dateRange.to, 'MMM dd')}
                     </span>
                   ) : (
                     'Date Range'
@@ -391,11 +447,10 @@ const Leads = () => {
                     <div className="mb-3">
                       <div className="flex items-center justify-between mb-2">
                         <h3 className="text-sm font-medium text-gray-700">Select Date Range</h3>
-                        {(dateRange.from || dateRange.to) && (
+                        {(tempDateRange?.from || tempDateRange?.to) && (
                           <button
                             onClick={() => {
-                              setDateRange({ from: undefined, to: undefined });
-                              setCurrentPage(1);
+                              setTempDateRange(undefined);
                             }}
                             className="text-xs text-gray-500 hover:text-gray-700"
                           >
@@ -406,12 +461,9 @@ const Leads = () => {
                     </div>
                     <DayPicker
                       mode="range"
-                      selected={dateRange}
+                      selected={tempDateRange}
                       onSelect={(range) => {
-                        setDateRange(range || { from: undefined, to: undefined });
-                        if (range?.from && range?.to) {
-                          setCurrentPage(1);
-                        }
+                        setTempDateRange(range);
                       }}
                       className="!text-sm"
                       modifiersStyles={{
@@ -421,15 +473,20 @@ const Leads = () => {
                         },
                         range_start: {
                           backgroundColor: '#16a34a',
-                          color: 'white'
+                          color: 'white',
+                          borderTopLeftRadius: '9999px',
+                          borderBottomLeftRadius: '9999px'
                         },
                         range_end: {
                           backgroundColor: '#16a34a',
-                          color: 'white'
+                          color: 'white',
+                          borderTopRightRadius: '9999px',
+                          borderBottomRightRadius: '9999px'
                         },
                         range_middle: {
                           backgroundColor: '#dcfce7',
-                          color: '#166534'
+                          color: '#166534',
+                          borderRadius: '0'
                         }
                       }}
                     />
@@ -442,6 +499,7 @@ const Leads = () => {
                       </button>
                       <button
                         onClick={() => {
+                          setDateRange(tempDateRange);
                           setShowDatePicker(false);
                           setCurrentPage(1);
                         }}
@@ -513,17 +571,11 @@ const Leads = () => {
                         <MapPin className="w-3 h-3 mr-1" />
                         {lead.address}
                       </p>
-                      {lead.latest_quote && (
-                        <p className="text-xs text-gray-500 mt-1">Quote: {lead.latest_quote.selected_tier}</p>
-                      )}
                     </div>
                   </td>
                   <td className="py-4 px-4">
                     {lead.latest_quote ? (
-                      <>
-                        <p className="font-semibold text-gray-900">{formatPrice(lead.latest_quote.total_price)}</p>
-                        <p className="text-xs text-gray-500 capitalize">{lead.latest_quote.selected_tier}</p>
-                      </>
+                      <p className="font-semibold text-gray-900">{formatPrice(lead.latest_quote.total_price)}</p>
                     ) : (
                       <p className="text-sm text-gray-500">No quote</p>
                     )}
@@ -535,7 +587,6 @@ const Leads = () => {
                   </td>
                   <td className="py-4 px-4">
                     <p className="text-sm text-gray-900">{formatDate(lead.created_at)}</p>
-                    <p className="text-xs text-gray-500 capitalize">via {lead.source}</p>
                   </td>
                   <td className="py-4 px-4">
                     <div className="flex items-center gap-2">
@@ -552,7 +603,7 @@ const Leads = () => {
                         <FileText className="w-3 h-3" />
                         Quote
                       </button>
-                      <div className="relative" ref={el => dropdownRefs.current[lead.id] = el}>
+                      <div className="relative" ref={(el) => { dropdownRefs.current[lead.id] = el; }}>
                         <button 
                           onClick={() => setOpenDropdownId(openDropdownId === lead.id ? null : lead.id)}
                           className="text-gray-400 hover:text-gray-600 ml-2 p-1 rounded hover:bg-gray-100">
