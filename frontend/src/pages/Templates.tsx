@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
 import Card from '../components/Card';
+import Modal from '../components/Modal';
 import { FileText, Download, Eye, Settings, Save, Edit2 } from 'lucide-react';
 import { templateAPI } from '../services/api';
 import type { TemplateData } from '../services/api';
+import jsPDF from 'jspdf';
 
 const Templates = () => {
   const [template, setTemplate] = useState<TemplateData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   const [headerText, setHeaderText] = useState('Professional Roof Quote');
   const [footerText, setFooterText] = useState('Thank you for choosing us!');
@@ -70,6 +73,247 @@ const Templates = () => {
     } catch (error) {
       console.error('Failed to fetch preview:', error);
     }
+  };
+
+  const generatePDF = () => {
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 20;
+    const contentWidth = pageWidth - 2 * margin;
+    let yPosition = margin;
+
+    pdf.setFontSize(18);
+    pdf.setFont(undefined, 'bold');
+    pdf.text(headerText, margin, yPosition);
+    yPosition += 8;
+    
+    pdf.setFontSize(10);
+    pdf.setFont(undefined, 'normal');
+    pdf.text('Professional Roofing Services', margin, yPosition);
+    
+    pdf.setFontSize(9);
+    pdf.text('Quote #2024-001', pageWidth - margin - 30, margin);
+    pdf.text(`Date: ${new Date().toLocaleDateString()}`, pageWidth - margin - 30, margin + 5);
+    yPosition += 15;
+
+    pdf.setDrawColor(200, 200, 200);
+    pdf.line(margin, yPosition, pageWidth - margin, yPosition);
+    yPosition += 10;
+
+    pdf.setFontSize(12);
+    pdf.setFont(undefined, 'bold');
+    pdf.text('Property Information', margin, yPosition);
+    yPosition += 7;
+    
+    pdf.setFontSize(10);
+    pdf.setFont(undefined, 'normal');
+    pdf.text('123 Sample Street', margin, yPosition);
+    yPosition += 5;
+    pdf.text('City, State 12345', margin, yPosition);
+    yPosition += 5;
+    pdf.text('Roof Size: 2,500 sq ft', margin, yPosition);
+    yPosition += 12;
+
+    pdf.setFontSize(12);
+    pdf.setFont(undefined, 'bold');
+    pdf.text('Pricing Options', margin, yPosition);
+    yPosition += 8;
+
+    const options = [
+      { name: 'Good - 3-Tab Shingles', warranty: '25-year warranty', price: '$16,250' },
+      { name: 'Better - Architectural Shingles', warranty: '30-year warranty', price: '$21,875', recommended: true },
+      { name: 'Best - Designer Shingles', warranty: 'Lifetime warranty', price: '$30,000' }
+    ];
+
+    pdf.setFontSize(10);
+    options.forEach((option) => {
+      if (option.recommended) {
+        pdf.setFillColor(220, 252, 231);
+        pdf.rect(margin, yPosition - 4, contentWidth, 15, 'F');
+        pdf.setDrawColor(34, 197, 94);
+        pdf.setLineWidth(0.5);
+        pdf.rect(margin, yPosition - 4, contentWidth, 15);
+      } else {
+        pdf.setDrawColor(200, 200, 200);
+        pdf.setLineWidth(0.3);
+        pdf.rect(margin, yPosition - 4, contentWidth, 15);
+      }
+      
+      pdf.setFont(undefined, 'bold');
+      pdf.text(option.name, margin + 2, yPosition);
+      pdf.text(option.price, pageWidth - margin - 20, yPosition);
+      yPosition += 5;
+      
+      pdf.setFont(undefined, 'normal');
+      pdf.text(option.warranty, margin + 2, yPosition);
+      if (option.recommended) {
+        pdf.setFontSize(8);
+        pdf.text('RECOMMENDED', margin + 2, yPosition + 5);
+        pdf.setFontSize(10);
+      }
+      yPosition += 12;
+    });
+
+    if (yPosition > pageHeight - 40) {
+      pdf.addPage();
+      yPosition = margin;
+    }
+
+    if (showWarranty) {
+      pdf.setFontSize(12);
+      pdf.setFont(undefined, 'bold');
+      pdf.text('Warranty Information', margin, yPosition);
+      yPosition += 7;
+      
+      pdf.setFontSize(10);
+      pdf.setFont(undefined, 'normal');
+      const warrantyLines = pdf.splitTextToSize(warrantyContent, contentWidth);
+      warrantyLines.forEach((line: string) => {
+        if (yPosition > pageHeight - margin) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+        pdf.text(line, margin, yPosition);
+        yPosition += 5;
+      });
+      yPosition += 5;
+    }
+
+    if (showFinancing) {
+      if (yPosition > pageHeight - 40) {
+        pdf.addPage();
+        yPosition = margin;
+      }
+      
+      pdf.setFontSize(12);
+      pdf.setFont(undefined, 'bold');
+      pdf.text('Financing Options', margin, yPosition);
+      yPosition += 7;
+      
+      pdf.setFontSize(10);
+      pdf.setFont(undefined, 'normal');
+      const financingLines = pdf.splitTextToSize(financingContent, contentWidth);
+      financingLines.forEach((line: string) => {
+        if (yPosition > pageHeight - margin) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+        pdf.text(line, margin, yPosition);
+        yPosition += 5;
+      });
+      yPosition += 5;
+    }
+
+    if (showTestimonials) {
+      if (yPosition > pageHeight - 40) {
+        pdf.addPage();
+        yPosition = margin;
+      }
+      
+      pdf.setFontSize(12);
+      pdf.setFont(undefined, 'bold');
+      pdf.text('Customer Testimonials', margin, yPosition);
+      yPosition += 7;
+      
+      pdf.setFontSize(10);
+      pdf.setFont(undefined, 'italic');
+      const testimonialLines = pdf.splitTextToSize(testimonialsContent, contentWidth);
+      testimonialLines.forEach((line: string) => {
+        if (yPosition > pageHeight - margin) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+        pdf.text(line, margin, yPosition);
+        yPosition += 5;
+      });
+      pdf.setFont(undefined, 'normal');
+      yPosition += 5;
+    }
+
+    if (customMessage) {
+      if (yPosition > pageHeight - 40) {
+        pdf.addPage();
+        yPosition = margin;
+      }
+      
+      pdf.setFillColor(245, 245, 245);
+      const messageLines = pdf.splitTextToSize(customMessage, contentWidth - 4);
+      const messageHeight = messageLines.length * 5 + 6;
+      pdf.rect(margin, yPosition - 3, contentWidth, messageHeight, 'F');
+      
+      pdf.setFontSize(10);
+      messageLines.forEach((line: string) => {
+        pdf.text(line, margin + 2, yPosition);
+        yPosition += 5;
+      });
+      yPosition += 8;
+    }
+
+    if (yPosition > pageHeight - 50) {
+      pdf.addPage();
+      yPosition = margin;
+    }
+
+    pdf.setFontSize(12);
+    pdf.setFont(undefined, 'bold');
+    pdf.text('Included Services', margin, yPosition);
+    yPosition += 7;
+    
+    pdf.setFontSize(10);
+    pdf.setFont(undefined, 'normal');
+    includedServices.forEach((service) => {
+      if (yPosition > pageHeight - margin) {
+        pdf.addPage();
+        yPosition = margin;
+      }
+      pdf.text(`• ${service}`, margin, yPosition);
+      yPosition += 5;
+    });
+    yPosition += 8;
+
+    if (yPosition > pageHeight - 30) {
+      pdf.addPage();
+      yPosition = margin;
+    }
+
+    pdf.setDrawColor(200, 200, 200);
+    pdf.line(margin, yPosition, pageWidth - margin, yPosition);
+    yPosition += 7;
+
+    pdf.setFontSize(10);
+    const footerLines = pdf.splitTextToSize(footerText, contentWidth);
+    footerLines.forEach((line: string) => {
+      if (yPosition > pageHeight - margin) {
+        pdf.addPage();
+        yPosition = margin;
+      }
+      pdf.text(line, margin, yPosition);
+      yPosition += 5;
+    });
+
+    if (termsConditions) {
+      yPosition += 3;
+      pdf.setFontSize(8);
+      pdf.setTextColor(128, 128, 128);
+      const termsLines = pdf.splitTextToSize(termsConditions, contentWidth);
+      termsLines.forEach((line: string) => {
+        if (yPosition > pageHeight - margin) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+        pdf.text(line, margin, yPosition);
+        yPosition += 4;
+      });
+      pdf.setTextColor(0, 0, 0);
+    }
+
+    return pdf;
+  };
+
+  const handleDownloadPDF = () => {
+    const pdf = generatePDF();
+    pdf.save('roof-quote-template.pdf');
   };
 
   const handleSave = async () => {
@@ -314,9 +558,12 @@ const Templates = () => {
                 <Save className="w-4 h-4 mr-2" />
                 {saving ? 'Saving...' : 'Save Template'}
               </button>
-              <button className="flex-1 border border-gray-300 py-2 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center">
+              <button 
+                onClick={handleDownloadPDF}
+                className="flex-1 border border-gray-300 py-2 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center"
+              >
                 <Download className="w-4 h-4 mr-2" />
-                Download Template
+                Download PDF
               </button>
             </div>
           </div>
@@ -433,13 +680,142 @@ const Templates = () => {
           </div>
 
           <div className="mt-4 flex justify-center">
-            <button className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center">
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
+            >
               <Eye className="w-4 h-4 mr-2" />
               Full Screen Preview
             </button>
           </div>
         </Card>
       </div>
+
+      <Modal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        title="Template Preview" 
+        fullScreen={true}
+      >
+        <div className="p-8">
+          <div className="max-w-4xl mx-auto bg-white shadow-lg rounded-lg p-8">
+            <div className="border-b pb-4 mb-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-900">{headerText}</h3>
+                  <p className="text-base text-gray-600">Professional Roofing Services</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-base text-gray-600">Quote #2024-001</p>
+                  <p className="text-base text-gray-600">Date: {new Date().toLocaleDateString()}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-8">
+              <h4 className="text-lg font-semibold text-gray-900 mb-3">Property Information</h4>
+              <p className="text-base text-gray-600">123 Sample Street</p>
+              <p className="text-base text-gray-600">City, State 12345</p>
+              <p className="text-base text-gray-600 mt-2">Roof Size: 2,500 sq ft</p>
+            </div>
+
+            <div className="mb-8">
+              <h4 className="text-lg font-semibold text-gray-900 mb-4">Pricing Options</h4>
+              <div className="space-y-4">
+                <div className="border-2 rounded-lg p-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-lg font-medium">Good - 3-Tab Shingles</p>
+                      <p className="text-base text-gray-600">25-year warranty</p>
+                    </div>
+                    <p className="font-bold text-2xl">$16,250</p>
+                  </div>
+                </div>
+                <div className="border-2 border-green-500 rounded-lg p-4 bg-green-50">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-lg font-medium">Better - Architectural Shingles</p>
+                      <p className="text-base text-gray-600">30-year warranty</p>
+                      <span className="text-sm bg-green-100 text-green-800 px-3 py-1 rounded mt-2 inline-block">Recommended</span>
+                    </div>
+                    <p className="font-bold text-2xl">$21,875</p>
+                  </div>
+                </div>
+                <div className="border-2 rounded-lg p-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-lg font-medium">Best - Designer Shingles</p>
+                      <p className="text-base text-gray-600">Lifetime warranty</p>
+                    </div>
+                    <p className="font-bold text-2xl">$30,000</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {showWarranty && (
+              <div className="mb-8">
+                <h4 className="text-lg font-semibold text-gray-900 mb-3">Warranty Information</h4>
+                <p className="text-base text-gray-600">
+                  {warrantyContent}
+                </p>
+              </div>
+            )}
+
+            {showFinancing && (
+              <div className="mb-8">
+                <h4 className="text-lg font-semibold text-gray-900 mb-3">Financing Options</h4>
+                <p className="text-base text-gray-600">
+                  {financingContent}
+                </p>
+              </div>
+            )}
+
+            {showTestimonials && (
+              <div className="mb-8">
+                <h4 className="text-lg font-semibold text-gray-900 mb-3">Customer Testimonials</h4>
+                <p className="text-base text-gray-600 italic">
+                  {testimonialsContent}
+                </p>
+              </div>
+            )}
+
+            {customMessage && (
+              <div className="mb-8 p-4 bg-gray-50 rounded">
+                <p className="text-base text-gray-700">{customMessage}</p>
+              </div>
+            )}
+
+            <div className="mb-8">
+              <h4 className="text-lg font-semibold text-gray-900 mb-3">Included Services</h4>
+              <ul className="text-base text-gray-600 space-y-2">
+                {includedServices.map((service, index) => (
+                  <li key={index}>• {service}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="border-t pt-6">
+              <p className="text-base text-gray-700 mb-3">{footerText}</p>
+              {termsConditions && (
+                <p className="text-sm text-gray-500">
+                  {termsConditions}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-6 flex justify-center">
+            <button 
+              onClick={handleDownloadPDF}
+              className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center"
+            >
+              <Download className="w-5 h-5 mr-2" />
+              Download PDF
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
