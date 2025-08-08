@@ -1,8 +1,10 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import logging
+import os
 from config import settings
 from database import engine, Base
 from seed_data import seed_database
@@ -43,6 +45,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount static files for uploads
+os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+app.mount(f"/{settings.UPLOAD_DIR}", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 
 @app.exception_handler(ValueError)
 async def value_error_handler(request: Request, exc: ValueError):

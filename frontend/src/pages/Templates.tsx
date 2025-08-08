@@ -1,7 +1,83 @@
+import { useState, useEffect } from 'react';
 import Card from '../components/Card';
-import { FileText, Download, Eye, Settings } from 'lucide-react';
+import { FileText, Download, Eye, Settings, Save } from 'lucide-react';
+import { templateAPI, TemplateData } from '../services/api';
 
 const Templates = () => {
+  const [template, setTemplate] = useState<TemplateData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  
+  const [headerText, setHeaderText] = useState('Professional Roof Quote');
+  const [footerText, setFooterText] = useState('Thank you for choosing us!');
+  const [showWarranty, setShowWarranty] = useState(true);
+  const [showFinancing, setShowFinancing] = useState(true);
+  const [showTestimonials, setShowTestimonials] = useState(true);
+  const [customMessage, setCustomMessage] = useState('');
+  const [termsConditions, setTermsConditions] = useState('');
+
+  useEffect(() => {
+    fetchTemplate();
+  }, []);
+
+  useEffect(() => {
+    fetchPreview();
+  }, [headerText, footerText, showWarranty, showFinancing, showTestimonials, customMessage, termsConditions]);
+
+  const fetchTemplate = async () => {
+    try {
+      const data = await templateAPI.get();
+      setTemplate(data);
+      setHeaderText(data.header_text);
+      setFooterText(data.footer_text);
+      setShowWarranty(data.show_warranty);
+      setShowFinancing(data.show_financing);
+      setShowTestimonials(data.show_testimonials);
+      setCustomMessage(data.custom_message || '');
+      setTermsConditions(data.terms_conditions || '');
+    } catch (error) {
+      console.error('Failed to fetch template:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchPreview = async () => {
+    try {
+      const response = await templateAPI.preview();
+      setPreviewHtml(response.preview_html);
+    } catch (error) {
+      console.error('Failed to fetch preview:', error);
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const updatedTemplate = await templateAPI.update({
+        header_text: headerText,
+        footer_text: footerText,
+        show_warranty: showWarranty,
+        show_financing: showFinancing,
+        show_testimonials: showTestimonials,
+        custom_message: customMessage || undefined,
+        terms_conditions: termsConditions || undefined,
+      });
+      setTemplate(updatedTemplate);
+      alert('Template saved successfully!');
+    } catch (error) {
+      console.error('Failed to save template:', error);
+      alert('Failed to save template');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="text-center py-8">Loading template data...</div>;
+  }
+
   return (
     <div>
       <h2 className="text-2xl font-bold text-gray-900 mb-2">PDF Template Configuration</h2>
@@ -12,24 +88,14 @@ const Templates = () => {
           <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Template Style
-              </label>
-              <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
-                <option>Professional</option>
-                <option>Modern</option>
-                <option>Classic</option>
-                <option>Minimal</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Header Content
               </label>
               <textarea
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                 rows={3}
                 placeholder="Enter header text for your proposals..."
+                value={headerText}
+                onChange={(e) => setHeaderText(e.target.value)}
               />
             </div>
 
@@ -41,6 +107,8 @@ const Templates = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                 rows={3}
                 placeholder="Enter footer text (e.g., terms, contact info)..."
+                value={footerText}
+                onChange={(e) => setFooterText(e.target.value)}
               />
             </div>
 
@@ -50,30 +118,46 @@ const Templates = () => {
               </label>
               <div className="space-y-2">
                 <label className="flex items-center">
-                  <input type="checkbox" className="mr-2 text-green-600" defaultChecked />
-                  <span className="text-sm">Company Information</span>
-                </label>
-                <label className="flex items-center">
-                  <input type="checkbox" className="mr-2 text-green-600" defaultChecked />
-                  <span className="text-sm">Pricing Breakdown</span>
-                </label>
-                <label className="flex items-center">
-                  <input type="checkbox" className="mr-2 text-green-600" defaultChecked />
-                  <span className="text-sm">Material Specifications</span>
-                </label>
-                <label className="flex items-center">
-                  <input type="checkbox" className="mr-2 text-green-600" defaultChecked />
+                  <input 
+                    type="checkbox" 
+                    className="mr-2 text-green-600" 
+                    checked={showWarranty}
+                    onChange={(e) => setShowWarranty(e.target.checked)}
+                  />
                   <span className="text-sm">Warranty Information</span>
                 </label>
                 <label className="flex items-center">
-                  <input type="checkbox" className="mr-2 text-green-600" />
-                  <span className="text-sm">Payment Terms</span>
+                  <input 
+                    type="checkbox" 
+                    className="mr-2 text-green-600" 
+                    checked={showFinancing}
+                    onChange={(e) => setShowFinancing(e.target.checked)}
+                  />
+                  <span className="text-sm">Financing Options</span>
                 </label>
                 <label className="flex items-center">
-                  <input type="checkbox" className="mr-2 text-green-600" />
-                  <span className="text-sm">Before/After Photos</span>
+                  <input 
+                    type="checkbox" 
+                    className="mr-2 text-green-600"
+                    checked={showTestimonials}
+                    onChange={(e) => setShowTestimonials(e.target.checked)}
+                  />
+                  <span className="text-sm">Customer Testimonials</span>
                 </label>
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Custom Message (Optional)
+              </label>
+              <textarea
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                rows={3}
+                placeholder="Add a custom message to your proposals..."
+                value={customMessage}
+                onChange={(e) => setCustomMessage(e.target.value)}
+              />
             </div>
 
             <div>
@@ -84,13 +168,19 @@ const Templates = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                 rows={4}
                 placeholder="Enter your terms and conditions..."
+                value={termsConditions}
+                onChange={(e) => setTermsConditions(e.target.value)}
               />
             </div>
 
             <div className="flex space-x-3">
-              <button className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center">
-                <Settings className="w-4 h-4 mr-2" />
-                Save Template
+              <button 
+                onClick={handleSave}
+                disabled={saving}
+                className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center disabled:opacity-50"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {saving ? 'Saving...' : 'Save Template'}
               </button>
               <button className="flex-1 border border-gray-300 py-2 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center">
                 <Download className="w-4 h-4 mr-2" />
@@ -106,7 +196,7 @@ const Templates = () => {
               <div className="border-b pb-4 mb-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-xl font-bold text-gray-900">Your Company Name</h3>
+                    <h3 className="text-xl font-bold text-gray-900">{headerText}</h3>
                     <p className="text-sm text-gray-600">Professional Roofing Services</p>
                   </div>
                   <div className="text-right">
@@ -157,6 +247,39 @@ const Templates = () => {
                 </div>
               </div>
 
+              {showWarranty && (
+                <div className="mb-6">
+                  <h4 className="font-semibold text-gray-900 mb-2">Warranty Information</h4>
+                  <p className="text-sm text-gray-600">
+                    Our comprehensive warranty covers materials and workmanship, giving you peace of mind for years to come.
+                  </p>
+                </div>
+              )}
+
+              {showFinancing && (
+                <div className="mb-6">
+                  <h4 className="font-semibold text-gray-900 mb-2">Financing Options</h4>
+                  <p className="text-sm text-gray-600">
+                    Flexible payment plans available with competitive rates. Ask about our 0% interest options.
+                  </p>
+                </div>
+              )}
+
+              {showTestimonials && (
+                <div className="mb-6">
+                  <h4 className="font-semibold text-gray-900 mb-2">Customer Testimonials</h4>
+                  <p className="text-sm text-gray-600 italic">
+                    "Excellent work and professional service. Highly recommended!" - Recent Customer
+                  </p>
+                </div>
+              )}
+
+              {customMessage && (
+                <div className="mb-6 p-3 bg-gray-50 rounded">
+                  <p className="text-sm text-gray-700">{customMessage}</p>
+                </div>
+              )}
+
               <div className="mb-6">
                 <h4 className="font-semibold text-gray-900 mb-2">Included Services</h4>
                 <ul className="text-sm text-gray-600 space-y-1">
@@ -169,8 +292,14 @@ const Templates = () => {
               </div>
 
               <div className="border-t pt-4">
-                <p className="text-xs text-gray-500">
-                  This quote is valid for 30 days. Terms and conditions apply.
+                <p className="text-sm text-gray-700 mb-2">{footerText}</p>
+                {termsConditions && (
+                  <p className="text-xs text-gray-500">
+                    {termsConditions}
+                  </p>
+                )}
+                <p className="text-xs text-gray-500 mt-2">
+                  This quote is valid for 30 days.
                 </p>
               </div>
             </div>
