@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Card from '../components/Card';
-import { FileText, Download, Eye, Settings, Save } from 'lucide-react';
+import { FileText, Download, Eye, Settings, Save, Edit2 } from 'lucide-react';
 import { templateAPI } from '../services/api';
 import type { TemplateData } from '../services/api';
 
@@ -17,6 +17,25 @@ const Templates = () => {
   const [showTestimonials, setShowTestimonials] = useState(true);
   const [customMessage, setCustomMessage] = useState('');
   const [termsConditions, setTermsConditions] = useState('');
+  
+  // Edit states for checkbox content
+  const [editingWarranty, setEditingWarranty] = useState(false);
+  const [editingFinancing, setEditingFinancing] = useState(false);
+  const [editingTestimonials, setEditingTestimonials] = useState(false);
+  const [editingServices, setEditingServices] = useState(false);
+  
+  // Content states
+  const [warrantyContent, setWarrantyContent] = useState('Our comprehensive warranty covers materials and workmanship, giving you peace of mind for years to come.');
+  const [financingContent, setFinancingContent] = useState('Flexible payment plans available with competitive rates. Ask about our 0% interest options.');
+  const [testimonialsContent, setTestimonialsContent] = useState('"Excellent work and professional service. Highly recommended!" - Recent Customer');
+  const [includedServices, setIncludedServices] = useState([
+    'Complete tear-off of existing roofing',
+    'Installation of new underlayment',
+    'New drip edge and flashing',
+    'Ridge vent installation',
+    'Full cleanup and debris removal'
+  ]);
+  const [servicesText, setServicesText] = useState('');
 
   useEffect(() => {
     fetchTemplate();
@@ -102,50 +121,149 @@ const Templates = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Footer Content
-              </label>
-              <textarea
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                rows={3}
-                placeholder="Enter footer text (e.g., terms, contact info)..."
-                value={footerText}
-                onChange={(e) => setFooterText(e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Include Sections
               </label>
               <div className="space-y-2">
-                <label className="flex items-center">
-                  <input 
-                    type="checkbox" 
-                    className="mr-2 text-green-600" 
-                    checked={showWarranty}
-                    onChange={(e) => setShowWarranty(e.target.checked)}
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center">
+                    <input 
+                      type="checkbox" 
+                      className="mr-2 text-green-600" 
+                      checked={showWarranty}
+                      onChange={(e) => setShowWarranty(e.target.checked)}
+                    />
+                    <span className="text-sm">Warranty Information</span>
+                  </label>
+                  <button
+                    onClick={() => setEditingWarranty(!editingWarranty)}
+                    className="text-gray-500 hover:text-green-600 transition-colors"
+                    title="Edit warranty content"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                </div>
+                {editingWarranty && (
+                  <textarea
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+                    rows={3}
+                    placeholder="Enter warranty information..."
+                    value={warrantyContent}
+                    onChange={(e) => setWarrantyContent(e.target.value)}
                   />
-                  <span className="text-sm">Warranty Information</span>
-                </label>
-                <label className="flex items-center">
-                  <input 
-                    type="checkbox" 
-                    className="mr-2 text-green-600" 
-                    checked={showFinancing}
-                    onChange={(e) => setShowFinancing(e.target.checked)}
+                )}
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center">
+                    <input 
+                      type="checkbox" 
+                      className="mr-2 text-green-600" 
+                      checked={showFinancing}
+                      onChange={(e) => setShowFinancing(e.target.checked)}
+                    />
+                    <span className="text-sm">Financing Options</span>
+                  </label>
+                  <button
+                    onClick={() => setEditingFinancing(!editingFinancing)}
+                    className="text-gray-500 hover:text-green-600 transition-colors"
+                    title="Edit financing content"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                </div>
+                {editingFinancing && (
+                  <textarea
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+                    rows={3}
+                    placeholder="Enter financing options..."
+                    value={financingContent}
+                    onChange={(e) => setFinancingContent(e.target.value)}
                   />
-                  <span className="text-sm">Financing Options</span>
-                </label>
-                <label className="flex items-center">
-                  <input 
-                    type="checkbox" 
-                    className="mr-2 text-green-600"
-                    checked={showTestimonials}
-                    onChange={(e) => setShowTestimonials(e.target.checked)}
+                )}
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center">
+                    <input 
+                      type="checkbox" 
+                      className="mr-2 text-green-600"
+                      checked={showTestimonials}
+                      onChange={(e) => setShowTestimonials(e.target.checked)}
+                    />
+                    <span className="text-sm">Customer Testimonials</span>
+                  </label>
+                  <button
+                    onClick={() => setEditingTestimonials(!editingTestimonials)}
+                    className="text-gray-500 hover:text-green-600 transition-colors"
+                    title="Edit testimonials content"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                </div>
+                {editingTestimonials && (
+                  <textarea
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+                    rows={3}
+                    placeholder="Enter customer testimonials..."
+                    value={testimonialsContent}
+                    onChange={(e) => setTestimonialsContent(e.target.value)}
                   />
-                  <span className="text-sm">Customer Testimonials</span>
-                </label>
+                )}
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center justify-between">
+                <span>Included Services</span>
+                <button
+                  onClick={() => {
+                    setEditingServices(!editingServices);
+                    if (!editingServices) {
+                      setServicesText(includedServices.join('\n'));
+                    }
+                  }}
+                  className="text-gray-500 hover:text-green-600 transition-colors"
+                  title="Edit included services"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+              </label>
+              {editingServices ? (
+                <div className="space-y-2">
+                  <textarea
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+                    rows={5}
+                    placeholder="Enter services (one per line)..."
+                    value={servicesText}
+                    onChange={(e) => setServicesText(e.target.value)}
+                  />
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => {
+                        const services = servicesText.split('\n').filter(s => s.trim());
+                        setIncludedServices(services);
+                        setEditingServices(false);
+                      }}
+                      className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+                    >
+                      Save Services
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingServices(false);
+                        setServicesText('');
+                      }}
+                      className="px-3 py-1 border border-gray-300 text-sm rounded hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <ul className="text-sm text-gray-600 space-y-1">
+                    {includedServices.map((service, index) => (
+                      <li key={index}>• {service}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
 
             <div>
@@ -158,6 +276,19 @@ const Templates = () => {
                 placeholder="Add a custom message to your proposals..."
                 value={customMessage}
                 onChange={(e) => setCustomMessage(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Footer Content
+              </label>
+              <textarea
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                rows={3}
+                placeholder="Enter footer text (e.g., terms, contact info)..."
+                value={footerText}
+                onChange={(e) => setFooterText(e.target.value)}
               />
             </div>
 
@@ -252,7 +383,7 @@ const Templates = () => {
                 <div className="mb-6">
                   <h4 className="font-semibold text-gray-900 mb-2">Warranty Information</h4>
                   <p className="text-sm text-gray-600">
-                    Our comprehensive warranty covers materials and workmanship, giving you peace of mind for years to come.
+                    {warrantyContent}
                   </p>
                 </div>
               )}
@@ -261,7 +392,7 @@ const Templates = () => {
                 <div className="mb-6">
                   <h4 className="font-semibold text-gray-900 mb-2">Financing Options</h4>
                   <p className="text-sm text-gray-600">
-                    Flexible payment plans available with competitive rates. Ask about our 0% interest options.
+                    {financingContent}
                   </p>
                 </div>
               )}
@@ -270,7 +401,7 @@ const Templates = () => {
                 <div className="mb-6">
                   <h4 className="font-semibold text-gray-900 mb-2">Customer Testimonials</h4>
                   <p className="text-sm text-gray-600 italic">
-                    "Excellent work and professional service. Highly recommended!" - Recent Customer
+                    {testimonialsContent}
                   </p>
                 </div>
               )}
@@ -284,11 +415,9 @@ const Templates = () => {
               <div className="mb-6">
                 <h4 className="font-semibold text-gray-900 mb-2">Included Services</h4>
                 <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• Complete tear-off of existing roofing</li>
-                  <li>• Installation of new underlayment</li>
-                  <li>• New drip edge and flashing</li>
-                  <li>• Ridge vent installation</li>
-                  <li>• Full cleanup and debris removal</li>
+                  {includedServices.map((service, index) => (
+                    <li key={index}>• {service}</li>
+                  ))}
                 </ul>
               </div>
 
@@ -299,9 +428,6 @@ const Templates = () => {
                     {termsConditions}
                   </p>
                 )}
-                <p className="text-xs text-gray-500 mt-2">
-                  This quote is valid for 30 days.
-                </p>
               </div>
             </div>
           </div>
