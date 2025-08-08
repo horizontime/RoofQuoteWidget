@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import Card from '../components/Card';
 import { Check, Edit2, Save, X } from 'lucide-react';
-import { pricingAPI, PricingData } from '../services/api';
+import { pricingAPI } from '../services/api';
+import type { PricingData } from '../services/api';
 
 const PricingSetup = () => {
   const [pricing, setPricing] = useState<PricingData | null>(null);

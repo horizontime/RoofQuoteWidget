@@ -23,9 +23,9 @@ class CRMLeadData(BaseModel):
     lead_id: int
     name: str
     email: str
-    phone: str = None
+    phone: Optional[str] = None
     address: str
-    quote_amount: float = None
+    quote_amount: Optional[float] = None
     source: str = "widget"
 
 class WebhookConfig(BaseModel):

@@ -4,6 +4,7 @@ from database import get_db
 from models import Branding, Contractor
 from pydantic import BaseModel
 from datetime import datetime
+from typing import Optional
 import os
 import uuid
 from config import settings
@@ -20,21 +21,21 @@ class BrandingBase(BaseModel):
 
 class BrandingCreate(BrandingBase):
     contractor_id: int
-    logo_url: str = None
+    logo_url: Optional[str] = None
 
 class BrandingUpdate(BaseModel):
-    primary_color: str = None
-    secondary_color: str = None
-    accent_color: str = None
-    font_family: str = None
-    logo_url: str = None
+    primary_color: Optional[str] = None
+    secondary_color: Optional[str] = None
+    accent_color: Optional[str] = None
+    font_family: Optional[str] = None
+    logo_url: Optional[str] = None
 
 class BrandingResponse(BrandingBase):
     id: int
     contractor_id: int
-    logo_url: str = None
+    logo_url: Optional[str] = None
     created_at: datetime
-    updated_at: datetime = None
+    updated_at: Optional[datetime] = None
     
     class Config:
         from_attributes = True

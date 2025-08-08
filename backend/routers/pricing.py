@@ -4,6 +4,7 @@ from database import get_db
 from models import Pricing, Contractor
 from pydantic import BaseModel
 from datetime import datetime
+from typing import Optional
 
 router = APIRouter()
 
@@ -24,23 +25,23 @@ class PricingCreate(PricingBase):
     contractor_id: int
 
 class PricingUpdate(BaseModel):
-    good_tier_price: float = None
-    good_tier_name: str = None
-    good_tier_warranty: str = None
-    better_tier_price: float = None
-    better_tier_name: str = None
-    better_tier_warranty: str = None
-    best_tier_price: float = None
-    best_tier_name: str = None
-    best_tier_warranty: str = None
-    removal_price: float = None
-    permit_price: float = None
+    good_tier_price: Optional[float] = None
+    good_tier_name: Optional[str] = None
+    good_tier_warranty: Optional[str] = None
+    better_tier_price: Optional[float] = None
+    better_tier_name: Optional[str] = None
+    better_tier_warranty: Optional[str] = None
+    best_tier_price: Optional[float] = None
+    best_tier_name: Optional[str] = None
+    best_tier_warranty: Optional[str] = None
+    removal_price: Optional[float] = None
+    permit_price: Optional[float] = None
 
 class PricingResponse(PricingBase):
     id: int
     contractor_id: int
     created_at: datetime
-    updated_at: datetime = None
+    updated_at: Optional[datetime] = None
     
     class Config:
         from_attributes = True

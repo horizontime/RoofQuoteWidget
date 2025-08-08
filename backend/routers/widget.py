@@ -4,6 +4,7 @@ from database import get_db
 from models import Contractor, WidgetSettings, Branding, Pricing
 from pydantic import BaseModel
 from datetime import datetime
+from typing import Optional
 
 router = APIRouter()
 
@@ -13,24 +14,24 @@ class WidgetSettingsBase(BaseModel):
     auto_open: bool = False
     delay_seconds: int = 0
     show_on_mobile: bool = True
-    custom_css: str = None
+    custom_css: Optional[str] = None
 
 class WidgetSettingsCreate(WidgetSettingsBase):
     contractor_id: int
 
 class WidgetSettingsUpdate(BaseModel):
-    position: str = None
-    button_text: str = None
-    auto_open: bool = None
-    delay_seconds: int = None
-    show_on_mobile: bool = None
-    custom_css: str = None
+    position: Optional[str] = None
+    button_text: Optional[str] = None
+    auto_open: Optional[bool] = None
+    delay_seconds: Optional[int] = None
+    show_on_mobile: Optional[bool] = None
+    custom_css: Optional[str] = None
 
 class WidgetSettingsResponse(WidgetSettingsBase):
     id: int
     contractor_id: int
     created_at: datetime
-    updated_at: datetime = None
+    updated_at: Optional[datetime] = None
     
     class Config:
         from_attributes = True

@@ -27,7 +27,7 @@ class QuoteResponse(BaseModel):
     permit_cost: float
     total_price: float
     quote_data: dict
-    pdf_url: str = None
+    pdf_url: Optional[str] = None
     created_at: datetime
     
     class Config:

@@ -4,6 +4,7 @@ from database import get_db
 from models import Template, Contractor
 from pydantic import BaseModel
 from datetime import datetime
+from typing import Optional
 
 router = APIRouter()
 
@@ -13,26 +14,26 @@ class TemplateBase(BaseModel):
     show_warranty: bool = True
     show_financing: bool = True
     show_testimonials: bool = True
-    custom_message: str = None
-    terms_conditions: str = None
+    custom_message: Optional[str] = None
+    terms_conditions: Optional[str] = None
 
 class TemplateCreate(TemplateBase):
     contractor_id: int
 
 class TemplateUpdate(BaseModel):
-    header_text: str = None
-    footer_text: str = None
-    show_warranty: bool = None
-    show_financing: bool = None
-    show_testimonials: bool = None
-    custom_message: str = None
-    terms_conditions: str = None
+    header_text: Optional[str] = None
+    footer_text: Optional[str] = None
+    show_warranty: Optional[bool] = None
+    show_financing: Optional[bool] = None
+    show_testimonials: Optional[bool] = None
+    custom_message: Optional[str] = None
+    terms_conditions: Optional[str] = None
 
 class TemplateResponse(TemplateBase):
     id: int
     contractor_id: int
     created_at: datetime
-    updated_at: datetime = None
+    updated_at: Optional[datetime] = None
     
     class Config:
         from_attributes = True

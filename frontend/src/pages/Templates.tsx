@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import Card from '../components/Card';
 import { FileText, Download, Eye, Settings, Save } from 'lucide-react';
-import { templateAPI, TemplateData } from '../services/api';
+import { templateAPI } from '../services/api';
+import type { TemplateData } from '../services/api';
 
 const Templates = () => {
   const [template, setTemplate] = useState<TemplateData | null>(null);
@@ -184,7 +185,7 @@ const Templates = () => {
               </button>
               <button className="flex-1 border border-gray-300 py-2 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center">
                 <Download className="w-4 h-4 mr-2" />
-                Export Template
+                Download Template
               </button>
             </div>
           </div>

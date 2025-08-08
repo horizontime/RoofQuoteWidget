@@ -15,34 +15,34 @@ router = APIRouter()
 class LeadBase(BaseModel):
     name: str
     email: str
-    phone: str = None
+    phone: Optional[str] = None
     address: str
     status: str = "new"
     source: str = "widget"
-    notes: str = None
+    notes: Optional[str] = None
 
 class LeadCreate(LeadBase):
     contractor_id: int
 
 class LeadUpdate(BaseModel):
-    name: str = None
-    email: str = None
-    phone: str = None
-    address: str = None
-    status: str = None
-    notes: str = None
+    name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    status: Optional[str] = None
+    notes: Optional[str] = None
 
 class LeadResponse(LeadBase):
     id: int
     contractor_id: int
     created_at: datetime
-    updated_at: datetime = None
+    updated_at: Optional[datetime] = None
     
     class Config:
         from_attributes = True
 
 class LeadWithQuote(LeadResponse):
-    latest_quote: dict = None
+    latest_quote: Optional[dict] = None
 
 @router.get("/contractor/{contractor_id}", response_model=List[LeadWithQuote])
 async def get_contractor_leads(

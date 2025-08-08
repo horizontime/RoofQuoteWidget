@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from database import get_db
 from models import Contractor
 from pydantic import BaseModel
@@ -12,25 +12,25 @@ router = APIRouter()
 class ContractorBase(BaseModel):
     company_name: str
     email: str
-    phone: str = None
-    address: str = None
-    website: str = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    website: Optional[str] = None
 
 class ContractorCreate(ContractorBase):
     pass
 
 class ContractorUpdate(BaseModel):
-    company_name: str = None
-    email: str = None
-    phone: str = None
-    address: str = None
-    website: str = None
+    company_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    website: Optional[str] = None
 
 class ContractorResponse(ContractorBase):
     id: int
     widget_id: str
     created_at: datetime
-    updated_at: datetime = None
+    updated_at: Optional[datetime] = None
     
     class Config:
         from_attributes = True

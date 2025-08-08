@@ -6,6 +6,7 @@ from models import Quote, Lead, Contractor, Pricing, Branding, Template
 import os
 from datetime import datetime
 import uuid
+from typing import Optional
 
 # Try to import reportlab, if not available, PDF generation will be disabled
 try:
@@ -214,7 +215,7 @@ async def download_pdf(quote_id: int, db: Session = Depends(get_db)):
 @router.post("/email/{quote_id}")
 async def email_pdf(
     quote_id: int,
-    email_to: str = None,
+    email_to: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     quote = db.query(Quote).filter(Quote.id == quote_id).first()

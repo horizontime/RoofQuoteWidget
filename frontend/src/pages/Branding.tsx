@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import Card from '../components/Card';
 import { Upload, Palette, Save, RotateCcw } from 'lucide-react';
-import { brandingAPI, BrandingData } from '../services/api';
+import { brandingAPI } from '../services/api';
+import type { BrandingData } from '../services/api';
 
 const Branding = () => {
   const [branding, setBranding] = useState<BrandingData | null>(null);

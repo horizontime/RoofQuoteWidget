@@ -13,9 +13,9 @@ class AnalyticsEvent(BaseModel):
     contractor_id: int
     event_type: str
     event_data: dict = {}
-    session_id: str = None
-    ip_address: str = None
-    user_agent: str = None
+    session_id: Optional[str] = None
+    ip_address: Optional[str] = None
+    user_agent: Optional[str] = None
 
 class DateRange(BaseModel):
     start_date: datetime
