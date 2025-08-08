@@ -3,21 +3,31 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from database import get_db
 from models import Quote, Lead, Contractor, Pricing, Branding, Template
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
-from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 import os
 from datetime import datetime
 import uuid
+
+# Try to import reportlab, if not available, PDF generation will be disabled
+try:
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import letter
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import inch
+    from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+    REPORTLAB_AVAILABLE = True
+except ImportError:
+    REPORTLAB_AVAILABLE = False
+    print("Warning: reportlab not installed. PDF generation will be disabled.")
 
 router = APIRouter()
 
 os.makedirs("pdfs", exist_ok=True)
 
 def generate_proposal_pdf(quote_id: int, db: Session) -> str:
+    if not REPORTLAB_AVAILABLE:
+        raise HTTPException(status_code=503, detail="PDF generation unavailable - reportlab not installed")
+    
     quote = db.query(Quote).filter(Quote.id == quote_id).first()
     if not quote:
         raise ValueError("Quote not found")
