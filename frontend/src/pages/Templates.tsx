@@ -12,6 +12,7 @@ const Templates = () => {
   const [saving, setSaving] = useState(false);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [companyName, setCompanyName] = useState('Professional Roofing Services');
   
   const [headerText, setHeaderText] = useState('Professional Roof Quote');
   const [footerText, setFooterText] = useState('Thank you for choosing us!');
@@ -42,6 +43,10 @@ const Templates = () => {
 
   useEffect(() => {
     fetchTemplate();
+    const savedCompanyName = localStorage.getItem('companyName');
+    if (savedCompanyName) {
+      setCompanyName(savedCompanyName);
+    }
   }, []);
 
   useEffect(() => {
@@ -90,7 +95,7 @@ const Templates = () => {
     
     pdf.setFontSize(10);
     pdf.setFont(undefined, 'normal');
-    pdf.text('Professional Roofing Services', margin, yPosition);
+    pdf.text(companyName, margin, yPosition);
     
     pdf.setFontSize(9);
     pdf.text('Quote #2024-001', pageWidth - margin - 30, margin);
@@ -576,7 +581,7 @@ const Templates = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-xl font-bold text-gray-900">{headerText}</h3>
-                    <p className="text-sm text-gray-600">Professional Roofing Services</p>
+                    <p className="text-sm text-gray-600">{companyName}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-gray-600">Quote #2024-001</p>
@@ -703,7 +708,7 @@ const Templates = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-2xl font-bold text-gray-900">{headerText}</h3>
-                  <p className="text-base text-gray-600">Professional Roofing Services</p>
+                  <p className="text-base text-gray-600">{companyName}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-base text-gray-600">Quote #2024-001</p>

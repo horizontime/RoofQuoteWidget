@@ -8,6 +8,7 @@ const Branding = () => {
   const [branding, setBranding] = useState<BrandingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [companyName, setCompanyName] = useState('Professional Roofing Services');
   const [primaryColor, setPrimaryColor] = useState('#22c55e');
   const [secondaryColor, setSecondaryColor] = useState('#16a34a');
   const [accentColor, setAccentColor] = useState('#15803d');
@@ -18,6 +19,10 @@ const Branding = () => {
 
   useEffect(() => {
     fetchBranding();
+    const savedCompanyName = localStorage.getItem('companyName');
+    if (savedCompanyName) {
+      setCompanyName(savedCompanyName);
+    }
   }, []);
 
   const fetchBranding = async () => {
@@ -40,12 +45,14 @@ const Branding = () => {
     setSaving(true);
     try {
       const updatedBranding = await brandingAPI.update({
+        company_name: companyName,
         primary_color: primaryColor,
         secondary_color: secondaryColor,
         accent_color: accentColor,
         font_family: fontFamily,
       });
       setBranding(updatedBranding);
+      localStorage.setItem('companyName', companyName);
       alert('Branding saved successfully!');
     } catch (error) {
       console.error('Failed to save branding:', error);
@@ -56,6 +63,7 @@ const Branding = () => {
   };
 
   const handleReset = () => {
+    setCompanyName('Professional Roofing Services');
     setPrimaryColor('#22c55e');
     setSecondaryColor('#16a34a');
     setAccentColor('#15803d');
@@ -114,9 +122,26 @@ const Branding = () => {
       <p className="text-gray-600 mb-8">Upload your logo and set your brand colors</p>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card title="Company Logo">
-          <div className="space-y-4">
-            <div 
+        <div className="space-y-6">
+          <Card title="Company Name">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Company Name
+              </label>
+              <input
+                type="text"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                placeholder="Enter your company name..."
+              />
+              <p className="text-xs text-gray-500 mt-1">This will appear as the subheading in your PDF proposals</p>
+            </div>
+          </Card>
+
+          <Card title="Company Logo">
+            <div className="space-y-4">
+              <div 
               className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors"
               onDrop={handleDrop}
               onDragOver={handleDragOver}
@@ -180,6 +205,7 @@ const Branding = () => {
             </div>
           </div>
         </Card>
+        </div>
 
         <Card title="Brand Colors">
           <div className="space-y-6">
