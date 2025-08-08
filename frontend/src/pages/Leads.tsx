@@ -1,8 +1,10 @@
 import Card from '../components/Card';
-import { Search, Filter, Calendar, Download, Phone, Mail, MapPin, MoreVertical } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import Modal from '../components/Modal';
+import { Search, Filter, Calendar, Download, Phone, Mail, MapPin, MoreVertical, Eye, FileText, Edit2, Trash2, X, Check } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { leadAPI } from '../services/api';
 import type { Lead } from '../services/api';
+import { generateQuotePDF, type QuoteData } from '../utils/pdfGenerator';
 
 const Leads = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -12,6 +14,13 @@ const Leads = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalLeads, setTotalLeads] = useState(0);
   const leadsPerPage = 10;
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState<Lead | null>(null);
+  const dropdownRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
 
   useEffect(() => {
     fetchLeads();
@@ -29,7 +38,7 @@ const Leads = () => {
       const data = await leadAPI.getContractorLeads(1, params);
       setLeads(data);
       // For demo, set total based on returned data
-      setTotalLeads(data.length > 0 ? 156 : 0);
+      setTotalLeads(data.length);
     } catch (error) {
       console.error('Error fetching leads:', error);
       // Fallback to mock data if API fails
@@ -95,7 +104,7 @@ const Leads = () => {
       source: 'Widget'
     }] as Lead[];
       setLeads(mockLeads);
-      setTotalLeads(5);
+      setTotalLeads(mockLeads.length);
     } finally {
       setLoading(false);
     }
@@ -148,6 +157,93 @@ const Leads = () => {
       default:
         return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openDropdownId !== null) {
+        const dropdownRef = dropdownRefs.current[openDropdownId];
+        if (dropdownRef && !dropdownRef.contains(event.target as Node)) {
+          setOpenDropdownId(null);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openDropdownId]);
+
+  const handleView = (lead: Lead) => {
+    setSelectedLead(lead);
+    setViewModalOpen(true);
+  };
+
+  const handleEdit = (lead: Lead) => {
+    setEditForm(lead);
+    setEditModalOpen(true);
+    setOpenDropdownId(null);
+  };
+
+  const handleDelete = (lead: Lead) => {
+    setSelectedLead(lead);
+    setDeleteModalOpen(true);
+    setOpenDropdownId(null);
+  };
+
+  const confirmDelete = () => {
+    if (selectedLead) {
+      setLeads(leads.filter(l => l.id !== selectedLead.id));
+      setTotalLeads(prev => Math.max(0, prev - 1));
+      setDeleteModalOpen(false);
+      setSelectedLead(null);
+    }
+  };
+
+  const handleSaveEdit = () => {
+    if (editForm) {
+      setLeads(leads.map(l => l.id === editForm.id ? editForm : l));
+      setEditModalOpen(false);
+      setEditForm(null);
+    }
+  };
+
+  const handleQuoteEmail = (lead: Lead) => {
+    const quoteData: QuoteData = {
+      leadName: lead.name,
+      leadEmail: lead.email,
+      leadPhone: lead.phone,
+      address: lead.address,
+      roofSize: lead.latest_quote?.roof_size_sqft ? `${lead.latest_quote.roof_size_sqft} sq ft` : '2,500 sq ft',
+      selectedTier: lead.latest_quote?.selected_tier || 'Better',
+      pricePerSqft: lead.latest_quote?.price_per_sqft || 8.75,
+      totalPrice: lead.latest_quote?.total_price || 21875,
+      warranty: lead.latest_quote?.selected_tier === 'best' ? 'Lifetime' : 
+                lead.latest_quote?.selected_tier === 'better' ? '30-year' : '25-year',
+      description: lead.latest_quote?.selected_tier === 'best' ? 'Premium Designer Shingles' :
+                   lead.latest_quote?.selected_tier === 'better' ? 'Architectural Shingles' : '3-Tab Shingles',
+      companyName: 'Your Roofing Company',
+      date: new Date().toLocaleDateString()
+    };
+
+    const pdfBlob = generateQuotePDF(quoteData);
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    
+    const subject = `Your Roofing Quote - ${lead.address}`;
+    const body = `Dear ${lead.name},\n\nThank you for your interest in our roofing services. Please find attached your personalized roofing quote for your property at ${lead.address}.\n\nQuote Summary:\n- Selected Package: ${quoteData.selectedTier}\n- Roof Size: ${quoteData.roofSize}\n- Total Price: $${quoteData.totalPrice.toLocaleString()}\n- Warranty: ${quoteData.warranty}\n\nThis quote is valid for 30 days. Please feel free to contact us if you have any questions or would like to schedule a consultation.\n\nBest regards,\n${quoteData.companyName}`;
+    
+    const mailtoLink = `mailto:${lead.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    
+    const link = document.createElement('a');
+    link.href = pdfUrl;
+    link.download = `Quote_${lead.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    setTimeout(() => {
+      window.location.href = mailtoLink;
+      URL.revokeObjectURL(pdfUrl);
+    }, 500);
   };
 
   return (
@@ -276,16 +372,42 @@ const Leads = () => {
                   </td>
                   <td className="py-4 px-4">
                     <div className="flex items-center gap-2">
-                      <button className="text-green-600 hover:text-green-700 text-sm font-medium">
+                      <button 
+                        onClick={() => handleView(lead)}
+                        className="text-green-600 hover:text-green-700 text-sm font-medium flex items-center gap-1">
+                        <Eye className="w-3 h-3" />
                         View
                       </button>
                       <span className="text-gray-300">|</span>
-                      <button className="text-green-600 hover:text-green-700 text-sm font-medium">
+                      <button 
+                        onClick={() => handleQuoteEmail(lead)}
+                        className="text-green-600 hover:text-green-700 text-sm font-medium flex items-center gap-1">
+                        <FileText className="w-3 h-3" />
                         Quote
                       </button>
-                      <button className="text-gray-400 hover:text-gray-600 ml-2">
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
+                      <div className="relative" ref={el => dropdownRefs.current[lead.id] = el}>
+                        <button 
+                          onClick={() => setOpenDropdownId(openDropdownId === lead.id ? null : lead.id)}
+                          className="text-gray-400 hover:text-gray-600 ml-2 p-1 rounded hover:bg-gray-100">
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                        {openDropdownId === lead.id && (
+                          <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
+                            <button
+                              onClick={() => handleEdit(lead)}
+                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                              <Edit2 className="w-4 h-4" />
+                              Edit Lead
+                            </button>
+                            <button
+                              onClick={() => handleDelete(lead)}
+                              className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                              <Trash2 className="w-4 h-4" />
+                              Delete Lead
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </td>
                 </tr>
@@ -295,52 +417,331 @@ const Leads = () => {
           </table>
         </div>
 
-        <div className="mt-6 flex items-center justify-between">
-          <p className="text-sm text-gray-600">
-            Showing {((currentPage - 1) * leadsPerPage) + 1} to {Math.min(currentPage * leadsPerPage, totalLeads)} of {totalLeads} results
-          </p>
-          <div className="flex gap-2">
-            <button 
-              className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50" 
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(currentPage - 1)}
-            >
-              Previous
-            </button>
-            {[...Array(Math.min(5, Math.ceil(totalLeads / leadsPerPage)))].map((_, index) => (
+        {totalLeads > leadsPerPage && (
+          <div className="mt-6 flex items-center justify-between">
+            <p className="text-sm text-gray-600">
+              Showing {Math.min(((currentPage - 1) * leadsPerPage) + 1, totalLeads)} to {Math.min(currentPage * leadsPerPage, totalLeads)} of {totalLeads} results
+            </p>
+            <div className="flex gap-2">
               <button 
-                key={index + 1}
-                className={`px-3 py-1 border rounded ${
-                  currentPage === index + 1 
-                    ? 'bg-green-600 text-white border-green-600' 
-                    : 'border-gray-300 hover:bg-gray-50'
-                }`}
-                onClick={() => setCurrentPage(index + 1)}
+                className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50" 
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(currentPage - 1)}
               >
-                {index + 1}
+                Previous
               </button>
-            ))}
-            {Math.ceil(totalLeads / leadsPerPage) > 5 && (
-              <>
-                <button className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">...</button>
+              {[...Array(Math.min(5, Math.ceil(totalLeads / leadsPerPage)))].map((_, index) => (
                 <button 
-                  className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50"
-                  onClick={() => setCurrentPage(Math.ceil(totalLeads / leadsPerPage))}
+                  key={index + 1}
+                  className={`px-3 py-1 border rounded ${
+                    currentPage === index + 1 
+                      ? 'bg-green-600 text-white border-green-600' 
+                      : 'border-gray-300 hover:bg-gray-50'
+                  }`}
+                  onClick={() => setCurrentPage(index + 1)}
                 >
-                  {Math.ceil(totalLeads / leadsPerPage)}
+                  {index + 1}
                 </button>
-              </>
-            )}
-            <button 
-              className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
-              disabled={currentPage >= Math.ceil(totalLeads / leadsPerPage)}
-              onClick={() => setCurrentPage(currentPage + 1)}
-            >
-              Next
-            </button>
+              ))}
+              {Math.ceil(totalLeads / leadsPerPage) > 5 && (
+                <>
+                  <button className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">...</button>
+                  <button 
+                    className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50"
+                    onClick={() => setCurrentPage(Math.ceil(totalLeads / leadsPerPage))}
+                  >
+                    {Math.ceil(totalLeads / leadsPerPage)}
+                  </button>
+                </>
+              )}
+              <button 
+                className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
+                disabled={currentPage >= Math.ceil(totalLeads / leadsPerPage)}
+                onClick={() => setCurrentPage(currentPage + 1)}
+              >
+                Next
+              </button>
+            </div>
           </div>
-        </div>
+        )}
+        {totalLeads <= leadsPerPage && totalLeads > 0 && (
+          <div className="mt-6">
+            <p className="text-sm text-gray-600">
+              Showing all {totalLeads} result{totalLeads === 1 ? '' : 's'}
+            </p>
+          </div>
+        )}
       </Card>
+
+      <Modal
+        isOpen={viewModalOpen}
+        onClose={() => setViewModalOpen(false)}
+        title="Lead Details"
+        size="lg"
+      >
+        {selectedLead && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 mb-1">Contact Information</h4>
+                <p className="text-lg font-semibold text-gray-900">{selectedLead.name}</p>
+                <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
+                  <Mail className="w-3 h-3" />
+                  {selectedLead.email}
+                </p>
+                <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
+                  <Phone className="w-3 h-3" />
+                  {selectedLead.phone}
+                </p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 mb-1">Property Details</h4>
+                <p className="text-sm text-gray-900 flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />
+                  {selectedLead.address}
+                </p>
+                {selectedLead.latest_quote && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    Roof Size: {selectedLead.latest_quote.roof_size_sqft} sq ft
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {selectedLead.latest_quote && (
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-medium text-gray-500 mb-2">Quote Information</h4>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-500">Package</p>
+                      <p className="text-sm font-semibold capitalize">{selectedLead.latest_quote.selected_tier}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Price per Sq Ft</p>
+                      <p className="text-sm font-semibold">${selectedLead.latest_quote.price_per_sqft}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Total Price</p>
+                      <p className="text-lg font-bold text-green-600">{formatPrice(selectedLead.latest_quote.total_price)}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="border-t pt-4">
+              <h4 className="text-sm font-medium text-gray-500 mb-2">Lead Status</h4>
+              <div className="flex items-center justify-between">
+                <span className={`text-sm px-3 py-1 rounded-full capitalize ${getStatusColor(selectedLead.status)}`}>
+                  {selectedLead.status}
+                </span>
+                <p className="text-sm text-gray-500">
+                  Created: {formatDate(selectedLead.created_at)}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <button
+                onClick={() => setViewModalOpen(false)}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  handleQuoteEmail(selectedLead);
+                  setViewModalOpen(false);
+                }}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+              >
+                <Mail className="w-4 h-4" />
+                Send Quote
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={editModalOpen}
+        onClose={() => {
+          setEditModalOpen(false);
+          setEditForm(null);
+        }}
+        title="Edit Lead"
+        size="lg"
+      >
+        {editForm && (
+          <form onSubmit={(e) => { e.preventDefault(); handleSaveEdit(); }} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                <input
+                  type="tel"
+                  value={editForm.phone}
+                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select
+                  value={editForm.status}
+                  onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  <option value="new">New</option>
+                  <option value="quoted">Quoted</option>
+                  <option value="contacted">Contacted</option>
+                  <option value="converted">Converted</option>
+                  <option value="lost">Lost</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+              <input
+                type="text"
+                value={editForm.address}
+                onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+
+            {editForm.latest_quote && (
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-medium text-gray-700 mb-2">Quote Details</h4>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Package Tier</label>
+                    <select
+                      value={editForm.latest_quote.selected_tier}
+                      onChange={(e) => setEditForm({
+                        ...editForm,
+                        latest_quote: { ...editForm.latest_quote!, selected_tier: e.target.value }
+                      })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
+                      <option value="good">Good</option>
+                      <option value="better">Better</option>
+                      <option value="best">Best</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Roof Size (sq ft)</label>
+                    <input
+                      type="number"
+                      value={editForm.latest_quote.roof_size_sqft}
+                      onChange={(e) => setEditForm({
+                        ...editForm,
+                        latest_quote: { ...editForm.latest_quote!, roof_size_sqft: parseInt(e.target.value) }
+                      })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Total Price</label>
+                    <input
+                      type="number"
+                      value={editForm.latest_quote.total_price}
+                      onChange={(e) => setEditForm({
+                        ...editForm,
+                        latest_quote: { ...editForm.latest_quote!, total_price: parseFloat(e.target.value) }
+                      })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <button
+                type="button"
+                onClick={() => {
+                  setEditModalOpen(false);
+                  setEditForm(null);
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+              >
+                <Check className="w-4 h-4" />
+                Save Changes
+              </button>
+            </div>
+          </form>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setSelectedLead(null);
+        }}
+        title="Confirm Delete"
+        size="sm"
+      >
+        {selectedLead && (
+          <div className="space-y-4">
+            <p className="text-gray-600">
+              Are you sure you want to delete the lead for <strong>{selectedLead.name}</strong>? This action cannot be undone.
+            </p>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p className="text-sm text-red-800">
+                <strong>Warning:</strong> All data associated with this lead will be permanently deleted.
+              </p>
+            </div>
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <button
+                onClick={() => {
+                  setDeleteModalOpen(false);
+                  setSelectedLead(null);
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete Lead
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };
