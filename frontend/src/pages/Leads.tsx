@@ -5,6 +5,9 @@ import { useState, useEffect, useRef } from 'react';
 import { leadAPI } from '../services/api';
 import type { Lead } from '../services/api';
 import { generateQuotePDF, type QuoteData } from '../utils/pdfGenerator';
+import { DayPicker } from 'react-day-picker';
+import 'react-day-picker/dist/style.css';
+import { format } from 'date-fns';
 
 const Leads = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -22,10 +25,13 @@ const Leads = () => {
   const [editForm, setEditForm] = useState<Lead | null>(null);
   const dropdownRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({ from: undefined, to: undefined });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const datePickerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     fetchLeads();
-  }, [searchTerm, statusFilter, currentPage]);
+  }, [searchTerm, statusFilter, currentPage, dateRange]);
 
   const fetchLeads = async () => {
     try {
@@ -35,6 +41,8 @@ const Leads = () => {
         limit: leadsPerPage,
         status: statusFilter !== 'all' ? statusFilter : undefined,
         search: searchTerm || undefined,
+        date_from: dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined,
+        date_to: dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
       };
       const data = await leadAPI.getContractorLeads(1, params);
       setLeads(data);
@@ -173,6 +181,19 @@ const Leads = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [openDropdownId]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
+        setShowDatePicker(false);
+      }
+    };
+
+    if (showDatePicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showDatePicker]);
 
   const handleView = (lead: Lead) => {
     setSelectedLead(lead);
@@ -349,10 +370,89 @@ const Leads = () => {
                 </select>
               </div>
               
-              <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center">
-                <Calendar className="w-4 h-4 mr-2" />
-                Date Range
-              </button>
+              <div className="relative" ref={datePickerRef}>
+                <button 
+                  onClick={() => setShowDatePicker(!showDatePicker)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  {dateRange.from || dateRange.to ? (
+                    <span>
+                      {dateRange.from && format(dateRange.from, 'MMM dd')} 
+                      {dateRange.from && dateRange.to && ' - '}
+                      {dateRange.to && format(dateRange.to, 'MMM dd')}
+                    </span>
+                  ) : (
+                    'Date Range'
+                  )}
+                </button>
+                
+                {showDatePicker && (
+                  <div className="absolute right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 p-4 z-50">
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-sm font-medium text-gray-700">Select Date Range</h3>
+                        {(dateRange.from || dateRange.to) && (
+                          <button
+                            onClick={() => {
+                              setDateRange({ from: undefined, to: undefined });
+                              setCurrentPage(1);
+                            }}
+                            className="text-xs text-gray-500 hover:text-gray-700"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <DayPicker
+                      mode="range"
+                      selected={dateRange}
+                      onSelect={(range) => {
+                        setDateRange(range || { from: undefined, to: undefined });
+                        if (range?.from && range?.to) {
+                          setCurrentPage(1);
+                        }
+                      }}
+                      className="!text-sm"
+                      modifiersStyles={{
+                        selected: {
+                          backgroundColor: '#16a34a',
+                          color: 'white'
+                        },
+                        range_start: {
+                          backgroundColor: '#16a34a',
+                          color: 'white'
+                        },
+                        range_end: {
+                          backgroundColor: '#16a34a',
+                          color: 'white'
+                        },
+                        range_middle: {
+                          backgroundColor: '#dcfce7',
+                          color: '#166534'
+                        }
+                      }}
+                    />
+                    <div className="flex justify-end gap-2 mt-3 pt-3 border-t">
+                      <button
+                        onClick={() => setShowDatePicker(false)}
+                        className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50"
+                      >
+                        Close
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowDatePicker(false);
+                          setCurrentPage(1);
+                        }}
+                        className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
               
               <button 
                 onClick={handleExportCSV}
