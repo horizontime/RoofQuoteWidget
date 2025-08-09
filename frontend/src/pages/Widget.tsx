@@ -78,10 +78,8 @@ const Widget = () => {
         </Card>
 
         <Card title="Live Preview">
-          <div className="bg-gray-50 rounded-lg p-4 h-[600px] relative overflow-hidden">
-            <div className="bg-white rounded-lg shadow-sm h-full overflow-auto">
-              <WidgetFlow embedded={true} />
-            </div>
+          <div className="h-[600px] relative overflow-auto">
+            <WidgetFlow embedded={true} />
           </div>
         </Card>
       </div>
