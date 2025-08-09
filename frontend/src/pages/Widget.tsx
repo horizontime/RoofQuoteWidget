@@ -27,7 +27,7 @@ const Widget = () => {
       <h2 className="text-2xl font-bold text-gray-900 mb-2">Widget Deployment</h2>
       <p className="text-gray-600 mb-8">Embed the instant quote widget on your website</p>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(400px,_1fr)_2fr] gap-6">
         <Card title="Embed Code">
           <div className="space-y-4">
             <div>
