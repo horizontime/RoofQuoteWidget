@@ -10,6 +10,8 @@ import {
   Phone,
   Building2
 } from 'lucide-react';
+import { pricingAPI } from '../services/api';
+import type { PricingData } from '../services/api';
 
 interface WidgetFlowProps {
   embedded?: boolean;
@@ -22,6 +24,8 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
   const [primaryColor, setPrimaryColor] = useState('#22c55e');
   const [secondaryColor, setSecondaryColor] = useState('#16a34a');
   const [accentColor, setAccentColor] = useState('#15803d');
+  const [pricingData, setPricingData] = useState<PricingData | null>(null);
+  const [loadingPricing, setLoadingPricing] = useState(true);
   
   // Form data
   const [streetAddress, setStreetAddress] = useState('');
@@ -34,28 +38,6 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [bestTimeToCall, setBestTimeToCall] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
-  
-  // Mock pricing data
-  const pricingTiers = {
-    good: {
-      name: '3-Tab Shingles',
-      price: 6.50,
-      warranty: '25-year',
-      description: 'GAF Timberline NS'
-    },
-    better: {
-      name: 'Architectural Shingles',
-      price: 8.75,
-      warranty: '30-year',
-      description: 'GAF Timberline HDZ'
-    },
-    best: {
-      name: 'Designer Shingles',
-      price: 12.00,
-      warranty: 'Lifetime',
-      description: 'GAF Timberline UHDZ'
-    }
-  };
   
   // Mock roof area (in square feet)
   const roofArea = 1800;
@@ -80,7 +62,21 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
         console.error('Error loading branding:', e);
       }
     }
+    
+    // Load pricing from database
+    fetchPricing();
   }, []);
+  
+  const fetchPricing = async () => {
+    try {
+      const data = await pricingAPI.get();
+      setPricingData(data);
+    } catch (error) {
+      console.error('Failed to fetch pricing:', error);
+    } finally {
+      setLoadingPricing(false);
+    }
+  };
 
   const handleNextPage = () => {
     if (currentPage < 5) {
@@ -95,8 +91,43 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
   };
 
   const calculatePrice = (tier: string) => {
-    const tierData = pricingTiers[tier as keyof typeof pricingTiers];
-    return Math.round(roofArea * tierData.price);
+    if (!pricingData) return 0;
+    
+    let pricePerSqFt = 0;
+    if (tier === 'good') {
+      pricePerSqFt = pricingData.good_tier_price;
+    } else if (tier === 'better') {
+      pricePerSqFt = pricingData.better_tier_price;
+    } else if (tier === 'best') {
+      pricePerSqFt = pricingData.best_tier_price;
+    }
+    
+    return Math.round(roofArea * pricePerSqFt);
+  };
+  
+  const getTierData = () => {
+    if (!pricingData) return {};
+    
+    return {
+      good: {
+        name: pricingData.good_tier_name,
+        price: pricingData.good_tier_price,
+        warranty: pricingData.good_tier_warranty,
+        features: pricingData.good_tier_features
+      },
+      better: {
+        name: pricingData.better_tier_name,
+        price: pricingData.better_tier_price,
+        warranty: pricingData.better_tier_warranty,
+        features: pricingData.better_tier_features
+      },
+      best: {
+        name: pricingData.best_tier_name,
+        price: pricingData.best_tier_price,
+        warranty: pricingData.best_tier_warranty,
+        features: pricingData.best_tier_features
+      }
+    };
   };
 
   const renderHeader = () => (
@@ -244,86 +275,111 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
     </div>
   );
 
-  const renderPage3 = () => (
-    <div className="max-w-3xl mx-auto p-6 bg-white rounded-lg shadow-lg">
-      {renderHeader()}
-      
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center">
-            <div 
-              className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold mr-3"
-              style={{ backgroundColor: primaryColor }}
-            >
-              3
-            </div>
-            <h3 className="text-xl font-semibold">Your Instant Estimate</h3>
+  const renderPage3 = () => {
+    if (loadingPricing || !pricingData) {
+      return (
+        <div className="max-w-3xl mx-auto p-6 bg-white rounded-lg shadow-lg">
+          {renderHeader()}
+          <div className="text-center py-8">
+            <p className="text-gray-600">Loading pricing information...</p>
           </div>
-          <button
-            onClick={handlePreviousPage}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-800"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </button>
         </div>
+      );
+    }
+    
+    const tierData = getTierData();
+    
+    return (
+      <div className="max-w-3xl mx-auto p-6 bg-white rounded-lg shadow-lg">
+        {renderHeader()}
         
-        <div className="bg-gray-50 p-4 rounded-lg mb-6">
-          <p className="text-sm text-gray-600">Roof Area:</p>
-          <p className="text-2xl font-bold text-gray-900">~{roofArea} sq ft</p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          {Object.entries(pricingTiers).map(([key, tier]) => (
-            <div
-              key={key}
-              onClick={() => setSelectedTier(key)}
-              className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                selectedTier === key
-                  ? 'border-green-500 bg-green-50'
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <h4 className="font-bold text-lg capitalize">{key}</h4>
-                {key === 'better' && (
-                  <span 
-                    className="px-2 py-1 text-xs font-semibold text-white rounded-full"
-                    style={{ backgroundColor: primaryColor }}
-                  >
-                    Most Popular
-                  </span>
-                )}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              <div 
+                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold mr-3"
+                style={{ backgroundColor: primaryColor }}
+              >
+                3
               </div>
-              <p className="text-sm text-gray-600 mb-2">{tier.description}</p>
-              <p className="text-2xl font-bold text-gray-900">
-                ${calculatePrice(key).toLocaleString()}
-              </p>
-              <p className="text-sm text-gray-500">${tier.price.toFixed(2)}/sq ft</p>
-              <p className="text-sm text-gray-600 mt-2">{tier.warranty} warranty</p>
+              <h3 className="text-xl font-semibold">Your Instant Estimate</h3>
             </div>
-          ))}
+            <button
+              onClick={handlePreviousPage}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-800"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </button>
+          </div>
+          
+          <div className="bg-gray-50 p-4 rounded-lg mb-6">
+            <p className="text-sm text-gray-600">Roof Area:</p>
+            <p className="text-2xl font-bold text-gray-900">~{roofArea} sq ft</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            {Object.entries(tierData).map(([key, tier]) => (
+              <div
+                key={key}
+                onClick={() => setSelectedTier(key)}
+                className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                  selectedTier === key
+                    ? 'border-green-500 bg-green-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-bold text-lg capitalize">{key}</h4>
+                  {key === 'better' && (
+                    <span 
+                      className="px-2 py-1 text-xs font-semibold text-white rounded-full"
+                      style={{ backgroundColor: primaryColor }}
+                    >
+                      Most Popular
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm font-semibold text-gray-700 mb-1">{tier.name}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  ${calculatePrice(key).toLocaleString()}
+                </p>
+                <p className="text-sm text-gray-500 mb-2">${tier.price.toFixed(2)}/sq ft</p>
+                <p className="text-sm text-gray-600 mb-2">{tier.warranty} warranty</p>
+                <div className="border-t pt-2 mt-2">
+                  <ul className="space-y-1">
+                    {(tier.features || []).slice(0, 3).map((feature, idx) => (
+                      <li key={idx} className="text-xs text-gray-600 flex items-start">
+                        <Check className="w-3 h-3 text-green-500 mr-1 mt-0.5 flex-shrink-0" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <h4 className="font-semibold text-gray-900 mb-2">About Your Estimate</h4>
+            <ul className="space-y-1 text-sm text-gray-700">
+              <li>• Includes materials, labor, and cleanup</li>
+              <li>• Final price may vary after in-person assessment</li>
+              <li>• All estimates include manufacturer warranties</li>
+            </ul>
+          </div>
         </div>
         
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <h4 className="font-semibold text-gray-900 mb-2">About Your Estimate</h4>
-          <ul className="space-y-1 text-sm text-gray-700">
-            <li>• Includes materials, labor, and cleanup</li>
-            <li>• Final price may vary after in-person assessment</li>
-            <li>• All estimates include manufacturer warranties</li>
-          </ul>
-        </div>
+        <button
+          onClick={handleNextPage}
+          className="w-full py-3 rounded-lg text-white font-medium transition-colors"
+          style={{ backgroundColor: primaryColor }}
+        >
+          Get My Detailed Proposal
+        </button>
       </div>
-      
-      <button
-        onClick={handleNextPage}
-        className="w-full py-3 rounded-lg text-white font-medium transition-colors"
-        style={{ backgroundColor: primaryColor }}
-      >
-        Get My Detailed Proposal
-      </button>
-    </div>
-  );
+    );
+  };
 
   const renderPage4 = () => (
     <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg">

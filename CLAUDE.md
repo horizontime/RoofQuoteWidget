@@ -21,17 +21,15 @@ npm run preview      # Preview production build
 ### Backend Development
 ```bash
 cd backend
-# Backend not yet implemented - will use FastAPI
-# Future commands:
-# pip install -r requirements.txt
-# uvicorn main:app --reload
+pip install -r requirements.txt
+uvicorn main:app --reload
 ```
 
 ## Architecture
 
 ### Tech Stack
 - **Frontend**: React 19 + TypeScript + Vite + Tailwind CSS 4
-- **Backend**: FastAPI (Python) - not yet implemented
+- **Backend**: FastAPI (Python) 
 - **Database**: SQLite3 (planned)
 - **APIs**: Google Maps API for address/aerial imagery (planned)
 - **PDF**: jsPDF for proposal generation
@@ -44,7 +42,7 @@ cd backend
     /pages      - Route pages (Dashboard, PricingSetup, Branding, Templates, Widget, Leads)
     App.tsx     - Main router setup
     main.tsx    - Entry point
-/backend        - Empty, FastAPI implementation pending
+/backend        - FastAPI
 /docs           - PRD and specifications
 ```
 
@@ -67,10 +65,10 @@ cd backend
 - Frontend UI structure with all 6 pages
 - React Router navigation
 - Responsive design with green theme
-- Form layouts (not functional)
+- Form layouts 
 - Mock data displays
 
-### Not Implemented
+### in progress
 - Backend API (FastAPI)
 - Database layer
 - API integration (frontend-backend communication)
@@ -79,7 +77,7 @@ cd backend
 - Lead capture to CRM endpoint
 - Widget embed functionality
 - Form validation and submission
-- Authentication system
+
 
 ## Development Guidelines
 
@@ -99,14 +97,13 @@ reference document: 'docs\git-commit-standards.md'
 - Forms will use react-hook-form + zod validation
 - API calls via axios
 
-### Backend Requirements (To Be Implemented)
+### Backend Requirements
 - FastAPI with Python 3.8+
 - Endpoints for:
   - Contractor settings CRUD
   - Lead capture and management  
   - PDF generation
   - Widget configuration
-- Mock CRM endpoint for lead storage
 
 ## MVP Requirements
 

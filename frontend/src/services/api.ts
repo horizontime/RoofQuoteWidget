@@ -14,12 +14,15 @@ export interface PricingData {
   good_tier_price: number;
   good_tier_name: string;
   good_tier_warranty: string;
+  good_tier_features: string[];
   better_tier_price: number;
   better_tier_name: string;
   better_tier_warranty: string;
+  better_tier_features: string[];
   best_tier_price: number;
   best_tier_name: string;
   best_tier_warranty: string;
+  best_tier_features: string[];
   removal_price: number;
   permit_price: number;
 }

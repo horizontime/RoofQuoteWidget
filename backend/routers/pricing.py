@@ -4,7 +4,7 @@ from database import get_db
 from models import Pricing, Contractor
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 router = APIRouter()
 
@@ -12,12 +12,15 @@ class PricingBase(BaseModel):
     good_tier_price: float = 6.50
     good_tier_name: str = "3-Tab Shingles"
     good_tier_warranty: str = "25-year"
+    good_tier_features: List[str] = ["Traditional 3-tab design", "Basic wind resistance", "Standard algae protection", "25-year manufacturer warranty"]
     better_tier_price: float = 8.75
     better_tier_name: str = "Architectural Shingles"
     better_tier_warranty: str = "30-year"
+    better_tier_features: List[str] = ["Dimensional appearance", "Enhanced wind resistance (110 mph)", "Advanced algae protection", "30-year manufacturer warranty", "Better curb appeal"]
     best_tier_price: float = 12.00
     best_tier_name: str = "Designer Shingles"
     best_tier_warranty: str = "Lifetime"
+    best_tier_features: List[str] = ["Premium designer appearance", "Maximum wind resistance (130+ mph)", "Superior algae protection", "Lifetime manufacturer warranty", "Best curb appeal", "Enhanced energy efficiency"]
     removal_price: float = 1.50
     permit_price: float = 350.00
 
@@ -28,12 +31,15 @@ class PricingUpdate(BaseModel):
     good_tier_price: Optional[float] = None
     good_tier_name: Optional[str] = None
     good_tier_warranty: Optional[str] = None
+    good_tier_features: Optional[List[str]] = None
     better_tier_price: Optional[float] = None
     better_tier_name: Optional[str] = None
     better_tier_warranty: Optional[str] = None
+    better_tier_features: Optional[List[str]] = None
     best_tier_price: Optional[float] = None
     best_tier_name: Optional[str] = None
     best_tier_warranty: Optional[str] = None
+    best_tier_features: Optional[List[str]] = None
     removal_price: Optional[float] = None
     permit_price: Optional[float] = None
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Card from '../components/Card';
-import { Check, Edit2, Save, X } from 'lucide-react';
+import { Check, Edit2, Save, X, Plus, Trash2 } from 'lucide-react';
 import { pricingAPI } from '../services/api';
 import type { PricingData } from '../services/api';
 
@@ -34,18 +34,21 @@ const PricingSetup = () => {
           good_tier_price: pricing.good_tier_price,
           good_tier_name: pricing.good_tier_name,
           good_tier_warranty: pricing.good_tier_warranty,
+          good_tier_features: pricing.good_tier_features || [],
         });
       } else if (tier === 'better') {
         setTempValues({
           better_tier_price: pricing.better_tier_price,
           better_tier_name: pricing.better_tier_name,
           better_tier_warranty: pricing.better_tier_warranty,
+          better_tier_features: pricing.better_tier_features || [],
         });
       } else if (tier === 'best') {
         setTempValues({
           best_tier_price: pricing.best_tier_price,
           best_tier_name: pricing.best_tier_name,
           best_tier_warranty: pricing.best_tier_warranty,
+          best_tier_features: pricing.best_tier_features || [],
         });
       }
     }
@@ -65,6 +68,35 @@ const PricingSetup = () => {
   const handleCancel = () => {
     setEditingTier(null);
     setTempValues({});
+  };
+
+  const handleFeatureAdd = (tier: string) => {
+    const featuresKey = `${tier}_tier_features` as keyof PricingData;
+    const currentFeatures = (tempValues[featuresKey] as string[]) || [];
+    setTempValues({
+      ...tempValues,
+      [featuresKey]: [...currentFeatures, '']
+    });
+  };
+
+  const handleFeatureChange = (tier: string, index: number, value: string) => {
+    const featuresKey = `${tier}_tier_features` as keyof PricingData;
+    const currentFeatures = [...((tempValues[featuresKey] as string[]) || [])];
+    currentFeatures[index] = value;
+    setTempValues({
+      ...tempValues,
+      [featuresKey]: currentFeatures
+    });
+  };
+
+  const handleFeatureRemove = (tier: string, index: number) => {
+    const featuresKey = `${tier}_tier_features` as keyof PricingData;
+    const currentFeatures = [...((tempValues[featuresKey] as string[]) || [])];
+    currentFeatures.splice(index, 1);
+    setTempValues({
+      ...tempValues,
+      [featuresKey]: currentFeatures
+    });
   };
 
   const handleAdditionalEdit = () => {
@@ -108,7 +140,7 @@ const PricingSetup = () => {
       description: pricing.good_tier_name,
       price: pricing.good_tier_price,
       warranty: pricing.good_tier_warranty,
-      features: [
+      features: pricing.good_tier_features || [
         `${pricing.good_tier_warranty} warranty`,
         'Basic color options',
         'Standard installation',
@@ -122,7 +154,7 @@ const PricingSetup = () => {
       description: pricing.better_tier_name,
       price: pricing.better_tier_price,
       warranty: pricing.better_tier_warranty,
-      features: [
+      features: pricing.better_tier_features || [
         `${pricing.better_tier_warranty} warranty`,
         'Premium color options',
         'Enhanced installation',
@@ -138,7 +170,7 @@ const PricingSetup = () => {
       description: pricing.best_tier_name,
       price: pricing.best_tier_price,
       warranty: pricing.best_tier_warranty,
-      features: [
+      features: pricing.best_tier_features || [
         `${pricing.best_tier_warranty} warranty`,
         'Designer color options',
         'Premium installation',
@@ -196,6 +228,39 @@ const PricingSetup = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
                 </div>
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-sm font-medium text-gray-700">Features</label>
+                    <button
+                      type="button"
+                      onClick={() => handleFeatureAdd(tier.key)}
+                      className="text-green-600 hover:text-green-700 flex items-center gap-1 text-sm"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Feature
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {((tempValues[`${tier.key}_tier_features` as keyof PricingData] as string[]) || []).map((feature, idx) => (
+                      <div key={idx} className="flex gap-2">
+                        <input
+                          type="text"
+                          value={feature}
+                          onChange={(e) => handleFeatureChange(tier.key, idx, e.target.value)}
+                          placeholder="Enter feature description"
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleFeatureRemove(tier.key, idx)}
+                          className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleSave(tier.key)}
@@ -220,9 +285,10 @@ const PricingSetup = () => {
                   <p className="text-sm text-gray-700">{tier.description}</p>
                 </div>
                 
-                <div className="mb-6">
+                <div className="mb-4">
                   <span className="text-3xl font-bold text-gray-900">${tier.price.toFixed(2)}</span>
                   <span className="text-gray-600">/sq ft</span>
+                  <p className="text-sm text-gray-600 mt-2">{tier.warranty} warranty</p>
                 </div>
 
                 <div className="space-y-3 mb-6">

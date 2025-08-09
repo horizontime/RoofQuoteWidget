@@ -31,12 +31,15 @@ def seed_database():
             good_tier_price=6.50,
             good_tier_name="GAF Timberline NS",
             good_tier_warranty="25-year",
+            good_tier_features=["Traditional 3-tab design", "Basic wind resistance", "Standard algae protection", "25-year manufacturer warranty"],
             better_tier_price=8.75,
             better_tier_name="GAF Timberline HDZ",
             better_tier_warranty="30-year",
+            better_tier_features=["Dimensional appearance", "Enhanced wind resistance (110 mph)", "Advanced algae protection", "30-year manufacturer warranty", "Better curb appeal"],
             best_tier_price=12.00,
             best_tier_name="GAF Timberline UHDZ",
             best_tier_warranty="Lifetime",
+            best_tier_features=["Premium designer appearance", "Maximum wind resistance (130+ mph)", "Superior algae protection", "Lifetime manufacturer warranty", "Best curb appeal", "Enhanced energy efficiency"],
             removal_price=1.50,
             permit_price=350.00
         )
