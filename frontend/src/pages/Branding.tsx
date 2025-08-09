@@ -10,8 +10,6 @@ const Branding = () => {
   const [saving, setSaving] = useState(false);
   const [companyName, setCompanyName] = useState('Professional Roofing Services');
   const [primaryColor, setPrimaryColor] = useState('#22c55e');
-  const [secondaryColor, setSecondaryColor] = useState('#16a34a');
-  const [accentColor, setAccentColor] = useState('#15803d');
   const [fontFamily, setFontFamily] = useState('Inter');
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -30,8 +28,6 @@ const Branding = () => {
       const data = await brandingAPI.get();
       setBranding(data);
       setPrimaryColor(data.primary_color);
-      setSecondaryColor(data.secondary_color);
-      setAccentColor(data.accent_color);
       setFontFamily(data.font_family);
       setLogoUrl(data.logo_url);
     } catch (error) {
@@ -47,8 +43,6 @@ const Branding = () => {
       const updatedBranding = await brandingAPI.update({
         company_name: companyName,
         primary_color: primaryColor,
-        secondary_color: secondaryColor,
-        accent_color: accentColor,
         font_family: fontFamily,
       });
       setBranding(updatedBranding);
@@ -56,8 +50,6 @@ const Branding = () => {
       // Save branding colors for widget
       localStorage.setItem('branding', JSON.stringify({
         primaryColor,
-        secondaryColor,
-        accentColor,
         logoUrl,
         fontFamily
       }));
@@ -73,8 +65,6 @@ const Branding = () => {
   const handleReset = () => {
     setCompanyName('Professional Roofing Services');
     setPrimaryColor('#22c55e');
-    setSecondaryColor('#16a34a');
-    setAccentColor('#15803d');
     setFontFamily('Inter');
   };
 
@@ -211,7 +201,7 @@ const Branding = () => {
         </Card>
         </div>
 
-        <Card title="Brand Colors">
+        <Card title="Widget Theme Color">
           <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -235,76 +225,19 @@ const Branding = () => {
                   style={{ backgroundColor: primaryColor }}
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">Used for headers and CTAs</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Secondary Color
-              </label>
-              <div className="flex items-center space-x-3">
-                <input
-                  type="color"
-                  value={secondaryColor}
-                  onChange={(e) => setSecondaryColor(e.target.value)}
-                  className="h-10 w-20 border border-gray-300 rounded cursor-pointer"
-                />
-                <input
-                  type="text"
-                  value={secondaryColor}
-                  onChange={(e) => setSecondaryColor(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                />
-                <div 
-                  className="w-10 h-10 rounded-lg border border-gray-300"
-                  style={{ backgroundColor: secondaryColor }}
-                />
-              </div>
-              <p className="text-xs text-gray-500 mt-1">Used for body text and secondary elements</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Accent Color
-              </label>
-              <div className="flex items-center space-x-3">
-                <input
-                  type="color"
-                  value={accentColor}
-                  onChange={(e) => setAccentColor(e.target.value)}
-                  className="h-10 w-20 border border-gray-300 rounded cursor-pointer"
-                />
-                <input
-                  type="text"
-                  value={accentColor}
-                  onChange={(e) => setAccentColor(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                />
-                <div 
-                  className="w-10 h-10 rounded-lg border border-gray-300"
-                  style={{ backgroundColor: accentColor }}
-                />
-              </div>
-              <p className="text-xs text-gray-500 mt-1">Used for highlights and notifications</p>
+              <p className="text-xs text-gray-500 mt-1">Used for widget buttons, headers and interactive elements</p>
             </div>
 
             <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="text-sm font-medium text-gray-700 mb-3">Color Preview</h4>
+              <h4 className="text-sm font-medium text-gray-700 mb-3">Widget Preview</h4>
               <div className="space-y-2" style={{ fontFamily }}>
                 <div className="flex items-center space-x-2">
-                  <div className="w-full h-8 rounded flex items-center px-3 text-white text-sm font-medium" style={{ backgroundColor: primaryColor }}>
-                    Primary Button
+                  <div className="w-full h-10 rounded flex items-center justify-center text-white text-sm font-medium" style={{ backgroundColor: primaryColor }}>
+                    Get Instant Quote
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-full h-8 rounded flex items-center px-3 text-white text-sm" style={{ backgroundColor: secondaryColor }}>
-                    Secondary Text
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-full h-8 rounded flex items-center px-3 text-white text-sm" style={{ backgroundColor: accentColor }}>
-                    Accent Badge
-                  </div>
+                <div className="mt-3 p-3 border border-gray-200 rounded">
+                  <div className="text-sm text-gray-600">This color will be used for all interactive elements in your embedded widget</div>
                 </div>
               </div>
             </div>
