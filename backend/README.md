@@ -51,10 +51,10 @@ The API will be available at `http://localhost:8000`
 - Roof measurement calculation (mocked)
 - Multi-tier pricing calculations
 
-#### Phase 6: PDF Generation ✅
-- `/api/pdf` - PDF proposal generation
-- Contractor branding integration
-- Email delivery endpoint (mocked)
+#### Phase 6: Email Integration ✅
+- `/api/send-quote-email` - Send quotes via SendGrid with PDF attachments
+- Email configuration status endpoint
+- Test email functionality
 
 #### Phase 7: External Integrations ✅
 - `/api/integrations` - Mocked external services:
@@ -105,5 +105,6 @@ curl http://localhost:8000/api/widget/data/{widget_id}
 
 - All Google Maps API calls return mock/placeholder data
 - CRM integration endpoints are mocked for development
-- PDF generation uses ReportLab library
+- PDF generation handled by frontend using jsPDF
+- Email service uses SendGrid for sending quotes with PDF attachments
 - No authentication required (as per requirements)

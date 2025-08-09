@@ -20,8 +20,6 @@ required_modules = [
     "sqlalchemy",
     "pydantic",
     "pydantic_settings",
-    "reportlab",
-    "PIL",
     "aiofiles",
     "httpx",
     "jose",
