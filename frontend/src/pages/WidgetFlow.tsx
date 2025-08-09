@@ -24,6 +24,21 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
   const [primaryColor, setPrimaryColor] = useState('#22c55e');
   const [secondaryColor, setSecondaryColor] = useState('#16a34a');
   const [accentColor, setAccentColor] = useState('#15803d');
+  
+  // Helper function to darken color for hover effect
+  const darkenColor = (color: string, amount: number = 20) => {
+    const hex = color.replace('#', '');
+    const r = Math.max(0, parseInt(hex.substr(0, 2), 16) - amount);
+    const g = Math.max(0, parseInt(hex.substr(2, 2), 16) - amount);
+    const b = Math.max(0, parseInt(hex.substr(4, 2), 16) - amount);
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  };
+  
+  // Helper function to validate email
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
   const [pricingData, setPricingData] = useState<PricingData | null>(null);
   const [loadingPricing, setLoadingPricing] = useState(true);
   
@@ -199,8 +214,12 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
               <input
                 type="text"
                 value={zipCode}
-                onChange={(e) => setZipCode(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '').slice(0, 5);
+                  setZipCode(value);
+                }}
                 placeholder="80202"
+                maxLength={5}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
               />
             </div>
@@ -210,8 +229,21 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
       
       <button
         onClick={handleNextPage}
-        className="w-full py-3 rounded-lg text-white font-medium flex items-center justify-center gap-2 transition-colors"
-        style={{ backgroundColor: primaryColor }}
+        disabled={!streetAddress || !city || zipCode.length !== 5}
+        className="w-full py-3 rounded-lg text-white font-medium flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg"
+        style={{ 
+          backgroundColor: (!streetAddress || !city || zipCode.length !== 5) ? '#9ca3af' : primaryColor 
+        }}
+        onMouseEnter={(e) => {
+          if (streetAddress && city && zipCode.length === 5) {
+            e.currentTarget.style.backgroundColor = darkenColor(primaryColor);
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (streetAddress && city && zipCode.length === 5) {
+            e.currentTarget.style.backgroundColor = primaryColor;
+          }
+        }}
       >
         Continue to Map Verification
         <ChevronRight className="w-5 h-5" />
@@ -236,7 +268,7 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
           </div>
           <button
             onClick={handlePreviousPage}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-800"
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors duration-200"
           >
             <ArrowLeft className="w-4 h-4" />
             Back
@@ -253,22 +285,24 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
         
         <div className="bg-gray-50 p-4 rounded-lg mb-4">
           <p className="font-medium text-gray-700">
-            {streetAddress || '123 Main Street'}, {city || 'Denver'}, {zipCode || '80202'}
+            {streetAddress}, {city}, {zipCode}
           </p>
         </div>
       </div>
       
       <button
         onClick={handleNextPage}
-        className="w-full py-3 rounded-lg text-white font-medium flex items-center justify-center gap-2 mb-3 transition-colors"
+        className="w-full py-3 rounded-lg text-white font-medium flex items-center justify-center gap-2 mb-3 transition-all duration-200 hover:shadow-lg"
         style={{ backgroundColor: primaryColor }}
+        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = darkenColor(primaryColor)}
+        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = primaryColor}
       >
         <Check className="w-5 h-5" />
         Yes, This Is My Property
       </button>
       
       <button
-        className="w-full py-3 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+        className="w-full py-3 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 hover:shadow-md transition-all duration-200"
       >
         Adjust Polygon
       </button>
@@ -372,8 +406,10 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
         
         <button
           onClick={handleNextPage}
-          className="w-full py-3 rounded-lg text-white font-medium transition-colors"
+          className="w-full py-3 rounded-lg text-white font-medium transition-all duration-200 hover:shadow-lg"
           style={{ backgroundColor: primaryColor }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = darkenColor(primaryColor)}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = primaryColor}
         >
           Get My Detailed Proposal
         </button>
@@ -398,7 +434,7 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
           </div>
           <button
             onClick={handlePreviousPage}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-800"
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors duration-200"
           >
             <ArrowLeft className="w-4 h-4" />
             Back
@@ -412,31 +448,40 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                First Name <span className="text-red-500">*</span>
+              </label>
               <input
                 type="text"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
+                required
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Last Name <span className="text-red-500">*</span>
+              </label>
               <input
                 type="text"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
+                required
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
               />
             </div>
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Email Address <span className="text-red-500">*</span>
+            </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
             />
           </div>
@@ -491,8 +536,21 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
       
       <button
         onClick={handleNextPage}
-        className="w-full py-3 rounded-lg text-white font-medium transition-colors"
-        style={{ backgroundColor: primaryColor }}
+        disabled={!firstName || !lastName || !email || !isValidEmail(email)}
+        className="w-full py-3 rounded-lg text-white font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg"
+        style={{ 
+          backgroundColor: (!firstName || !lastName || !email || !isValidEmail(email)) ? '#9ca3af' : primaryColor 
+        }}
+        onMouseEnter={(e) => {
+          if (firstName && lastName && email && isValidEmail(email)) {
+            e.currentTarget.style.backgroundColor = darkenColor(primaryColor);
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (firstName && lastName && email && isValidEmail(email)) {
+            e.currentTarget.style.backgroundColor = primaryColor;
+          }
+        }}
       >
         Get My Free Proposal
       </button>
@@ -536,17 +594,27 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
         <p className="text-gray-700 mb-4">Questions? Call us now:</p>
         <a
           href="tel:2813308004"
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-white font-medium transition-colors mb-4"
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-white font-medium transition-all duration-200 mb-4 hover:shadow-lg"
           style={{ backgroundColor: primaryColor }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = darkenColor(primaryColor)}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = primaryColor}
         >
           <Phone className="w-5 h-5" />
           (281) 330-8004
         </a>
         
+        <div className="mt-4">
+          <button
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 hover:shadow-lg transition-all duration-200 font-medium"
+          >
+            Download My Proposal
+          </button>
+        </div>
+        
         <div className="mt-6">
           <button
             onClick={() => setCurrentPage(1)}
-            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:shadow-md transition-all duration-200"
           >
             Start Over
           </button>
