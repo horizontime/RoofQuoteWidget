@@ -53,6 +53,14 @@ const Branding = () => {
       });
       setBranding(updatedBranding);
       localStorage.setItem('companyName', companyName);
+      // Save branding colors for widget
+      localStorage.setItem('branding', JSON.stringify({
+        primaryColor,
+        secondaryColor,
+        accentColor,
+        logoUrl,
+        fontFamily
+      }));
       alert('Branding saved successfully!');
     } catch (error) {
       console.error('Failed to save branding:', error);

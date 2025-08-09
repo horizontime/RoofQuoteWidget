@@ -6,6 +6,7 @@ import Branding from './pages/Branding';
 import Templates from './pages/Templates';
 import Widget from './pages/Widget';
 import Leads from './pages/Leads';
+import WidgetFlow from './pages/WidgetFlow';
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
           <Route path="widget" element={<Widget />} />
           <Route path="leads" element={<Leads />} />
         </Route>
+        <Route path="/widget-preview" element={<WidgetFlow />} />
       </Routes>
     </Router>
   );

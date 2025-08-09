@@ -1,6 +1,7 @@
 import Card from '../components/Card';
-import { Code, Copy, ExternalLink } from 'lucide-react';
+import { Code, Copy, ExternalLink, Eye } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 const Widget = () => {
   const [copied, setCopied] = useState(false);
@@ -61,6 +62,15 @@ const Widget = () => {
                 <li>4. Save and publish your changes</li>
               </ol>
             </div>
+            
+            <Link
+              to="/widget-preview"
+              target="_blank"
+              className="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+            >
+              <Eye className="w-5 h-5" />
+              Preview Widget Flow
+            </Link>
           </div>
         </Card>
 
