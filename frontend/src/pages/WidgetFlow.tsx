@@ -24,6 +24,7 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
   const [primaryColor, setPrimaryColor] = useState('#22c55e');
   const [secondaryColor, setSecondaryColor] = useState('#16a34a');
   const [accentColor, setAccentColor] = useState('#15803d');
+  const [showAdjustButtons, setShowAdjustButtons] = useState(false);
   
   // Helper function to darken color for hover effect
   const darkenColor = (color: string, amount: number = 20) => {
@@ -301,11 +302,32 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
         Yes, This Is My Property
       </button>
       
-      <button
-        className="w-full py-3 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 hover:shadow-md transition-all duration-200"
-      >
-        Adjust Polygon
-      </button>
+      {!showAdjustButtons ? (
+        <button
+          onClick={() => setShowAdjustButtons(true)}
+          className="w-full py-3 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 hover:shadow-md transition-all duration-200"
+        >
+          Adjust Polygon
+        </button>
+      ) : (
+        <div className="flex gap-3">
+          <button
+            className="flex-1 py-3 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 hover:shadow-md transition-all duration-200"
+          >
+            Save Changes
+          </button>
+          <button
+            className="flex-1 py-3 rounded-lg bg-orange-500 text-white font-medium hover:bg-orange-600 hover:shadow-md transition-all duration-200"
+          >
+            Reset
+          </button>
+          <button
+            className="flex-1 py-3 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 hover:shadow-md transition-all duration-200"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
     </div>
   );
 
