@@ -529,7 +529,7 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
           
           <div className="bg-gray-50 p-4 rounded-lg mb-6">
             <p className="text-sm text-gray-600">Roof Area:</p>
-            <p className="text-2xl font-bold text-gray-900">~{roofArea} sq ft</p>
+            <p className="text-2xl font-bold text-gray-900">~{Math.round(roofArea).toLocaleString()} sq ft</p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
