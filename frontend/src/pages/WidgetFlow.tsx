@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   MapPin, 
   ChevronRight, 
@@ -12,6 +12,10 @@ import {
 } from 'lucide-react';
 import { pricingAPI } from '../services/api';
 import type { PricingData } from '../services/api';
+import { loadGoogleMaps, createMap, createPolygon, calculatePolygonArea, metersToSquareFeet, geocodeAddress, convertPolygonPointsToGoogleMaps } from '../services/mapService';
+import { OverpassService } from '../services/overpassService';
+import type { BuildingFootprint } from '../services/overpassService';
+import { usePolygonEditor } from '../hooks/usePolygonEditor';
 
 interface WidgetFlowProps {
   embedded?: boolean;
@@ -25,6 +29,15 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
   const [secondaryColor, setSecondaryColor] = useState('#16a34a');
   const [accentColor, setAccentColor] = useState('#15803d');
   const [showAdjustButtons, setShowAdjustButtons] = useState(false);
+  
+  // Map and polygon state
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [building, setBuilding] = useState<BuildingFootprint | null>(null);
+  const [polygonPath, setPolygonPath] = useState<google.maps.LatLngLiteral[]>([]);
+  const [isLoadingMap, setIsLoadingMap] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
+  const [calculatedArea, setCalculatedArea] = useState<number>(1800); // Default area
   
   // Helper function to darken color for hover effect
   const darkenColor = (color: string, amount: number = 20) => {
@@ -55,8 +68,8 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
   const [bestTimeToCall, setBestTimeToCall] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
   
-  // Mock roof area (in square feet)
-  const roofArea = 1800;
+  // Use calculated area from polygon or default
+  const roofArea = calculatedArea;
 
   useEffect(() => {
     // Load branding from localStorage
@@ -94,9 +107,57 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
     }
   };
 
-  const handleNextPage = () => {
+  const handleNextPage = async () => {
+    if (currentPage === 1) {
+      // When moving from page 1 to page 2, geocode address and fetch building
+      await handleAddressSubmit();
+    }
     if (currentPage < 5) {
       setCurrentPage(currentPage + 1);
+    }
+  };
+  
+  const handleAddressSubmit = async () => {
+    setIsLoadingMap(true);
+    setMapError(null);
+    
+    try {
+      // Geocode the address
+      const fullAddress = `${streetAddress}, ${city}, ${zipCode}`;
+      const geocodeResult = await geocodeAddress(fullAddress);
+      
+      if (!geocodeResult || !geocodeResult.geometry) {
+        throw new Error('Could not find location for this address');
+      }
+      
+      const lat = geocodeResult.geometry.location.lat();
+      const lng = geocodeResult.geometry.location.lng();
+      
+      // Fetch building polygon from Overpass API
+      const buildingData = await OverpassService.getClosestBuilding(lat, lng, 50);
+      
+      if (buildingData) {
+        setBuilding(buildingData);
+        const path = convertPolygonPointsToGoogleMaps(buildingData.polygon);
+        setPolygonPath(path);
+        setCalculatedArea(buildingData.area_sqft);
+      } else {
+        // If no building found, use a default polygon around the location
+        const defaultPolygon = [
+          { lat: lat + 0.0001, lng: lng - 0.0001 },
+          { lat: lat + 0.0001, lng: lng + 0.0001 },
+          { lat: lat - 0.0001, lng: lng + 0.0001 },
+          { lat: lat - 0.0001, lng: lng - 0.0001 },
+          { lat: lat + 0.0001, lng: lng - 0.0001 }
+        ];
+        setPolygonPath(defaultPolygon);
+        setCalculatedArea(1800); // Default area
+      }
+    } catch (error) {
+      console.error('Error processing address:', error);
+      setMapError(error instanceof Error ? error.message : 'Failed to process address');
+    } finally {
+      setIsLoadingMap(false);
     }
   };
 
@@ -252,83 +313,180 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
     </div>
   );
 
+  // Initialize map when on page 2
+  useEffect(() => {
+    if (currentPage === 2 && mapRef.current && !map && polygonPath.length > 0) {
+      initializeMap();
+    }
+  }, [currentPage, polygonPath]);
+  
+  const initializeMap = async () => {
+    if (!mapRef.current) return;
+    
+    try {
+      await loadGoogleMaps();
+      
+      // Calculate center from polygon
+      const center = polygonPath.reduce(
+        (acc, point) => ({
+          lat: acc.lat + point.lat / polygonPath.length,
+          lng: acc.lng + point.lng / polygonPath.length
+        }),
+        { lat: 0, lng: 0 }
+      );
+      
+      const mapInstance = await createMap(mapRef.current, {
+        center,
+        zoom: 20,
+        mapTypeId: 'satellite',
+        streetViewControl: false,
+        mapTypeControl: true,
+        mapTypeControlOptions: {
+          mapTypeIds: ['satellite', 'hybrid', 'roadmap']
+        },
+        tilt: 0,
+        fullscreenControl: false,
+        zoomControl: true
+      });
+      
+      setMap(mapInstance);
+    } catch (error) {
+      console.error('Error initializing map:', error);
+      setMapError('Failed to load map');
+    }
+  };
+  
+  // Polygon editor hook
+  const {
+    polygon,
+    startEditing,
+    saveChanges,
+    resetChanges,
+    cancelChanges
+  } = usePolygonEditor({
+    map,
+    initialPath: polygonPath,
+    onAreaChange: (areaSqFt) => setCalculatedArea(areaSqFt)
+  });
+  
+  const handleAdjustPolygon = () => {
+    setShowAdjustButtons(true);
+    startEditing();
+  };
+  
+  const handleSaveChanges = () => {
+    saveChanges();
+    setShowAdjustButtons(false);
+  };
+  
+  const handleReset = () => {
+    resetChanges();
+  };
+  
+  const handleCancel = () => {
+    cancelChanges();
+    setShowAdjustButtons(false);
+  };
+
   const renderPage2 = () => (
-    <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg">
-      {renderHeader()}
-      
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center">
-            <div 
-              className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold mr-3"
-              style={{ backgroundColor: primaryColor }}
-            >
-              2
+      <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg">
+        {renderHeader()}
+        
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              <div 
+                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold mr-3"
+                style={{ backgroundColor: primaryColor }}
+              >
+                2
+              </div>
+              <h3 className="text-xl font-semibold">Confirm Your Property</h3>
             </div>
-            <h3 className="text-xl font-semibold">Confirm Your Property</h3>
+            <button
+              onClick={handlePreviousPage}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors duration-200"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </button>
           </div>
-          <button
-            onClick={handlePreviousPage}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors duration-200"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </button>
+          
+          <div className="relative">
+            <div 
+              ref={mapRef} 
+              className="h-64 rounded-lg mb-4 bg-gray-200"
+            >
+              {isLoadingMap && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-200 rounded-lg">
+                  <div className="text-center">
+                    <div className="animate-spin w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full mx-auto mb-2"></div>
+                    <p className="text-gray-600">Loading satellite view...</p>
+                  </div>
+                </div>
+              )}
+              {mapError && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-200 rounded-lg">
+                  <div className="text-center">
+                    <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                    <p className="text-red-500">{mapError}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="bg-gray-50 p-4 rounded-lg mb-4">
+            <p className="font-medium text-gray-700">
+              {streetAddress}, {city}, {zipCode}
+            </p>
+            <p className="text-sm text-gray-600 mt-1">
+              Estimated Roof Area: ~{Math.round(calculatedArea).toLocaleString()} sq ft
+            </p>
+          </div>
         </div>
         
-        <div className="bg-gray-200 h-64 rounded-lg mb-4 flex items-center justify-center">
-          <div className="text-center">
-            <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-            <p className="text-gray-500">Satellite view of property</p>
-            <p className="text-sm text-gray-400">(Map integration not implemented)</p>
-          </div>
-        </div>
-        
-        <div className="bg-gray-50 p-4 rounded-lg mb-4">
-          <p className="font-medium text-gray-700">
-            {streetAddress}, {city}, {zipCode}
-          </p>
-        </div>
-      </div>
-      
-      <button
-        onClick={handleNextPage}
-        className="w-full py-3 rounded-lg text-white font-medium flex items-center justify-center gap-2 mb-3 transition-all duration-200 hover:shadow-lg"
-        style={{ backgroundColor: primaryColor }}
-        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = darkenColor(primaryColor)}
-        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = primaryColor}
-      >
-        <Check className="w-5 h-5" />
-        Yes, This Is My Property
-      </button>
-      
-      {!showAdjustButtons ? (
         <button
-          onClick={() => setShowAdjustButtons(true)}
-          className="w-full py-3 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 hover:shadow-md transition-all duration-200"
+          onClick={handleNextPage}
+          className="w-full py-3 rounded-lg text-white font-medium flex items-center justify-center gap-2 mb-3 transition-all duration-200 hover:shadow-lg"
+          style={{ backgroundColor: primaryColor }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = darkenColor(primaryColor)}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = primaryColor}
         >
-          Adjust Polygon
+          <Check className="w-5 h-5" />
+          Yes, This Is My Property
         </button>
-      ) : (
-        <div className="flex gap-3">
+        
+        {!showAdjustButtons ? (
           <button
-            className="flex-1 py-3 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 hover:shadow-md transition-all duration-200"
+            onClick={handleAdjustPolygon}
+            className="w-full py-3 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 hover:shadow-md transition-all duration-200"
           >
-            Save Changes
+            Adjust Polygon
           </button>
-          <button
-            className="flex-1 py-3 rounded-lg bg-orange-500 text-white font-medium hover:bg-orange-600 hover:shadow-md transition-all duration-200"
-          >
-            Reset
-          </button>
-          <button
-            className="flex-1 py-3 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 hover:shadow-md transition-all duration-200"
-          >
-            Cancel
-          </button>
-        </div>
-      )}
-    </div>
+        ) : (
+          <div className="flex gap-3">
+            <button
+              onClick={handleSaveChanges}
+              className="flex-1 py-3 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 hover:shadow-md transition-all duration-200"
+            >
+              Save Changes
+            </button>
+            <button
+              onClick={handleReset}
+              className="flex-1 py-3 rounded-lg bg-orange-500 text-white font-medium hover:bg-orange-600 hover:shadow-md transition-all duration-200"
+            >
+              Reset
+            </button>
+            <button
+              onClick={handleCancel}
+              className="flex-1 py-3 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 hover:shadow-md transition-all duration-200"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+      </div>
   );
 
   const renderPage3 = () => {
