@@ -53,6 +53,27 @@ const Templates = () => {
     fetchPreview();
   }, [headerText, footerText, showWarranty, showFinancing, showTestimonials, customMessage, termsConditions]);
 
+  // Save template settings to localStorage whenever they change
+  useEffect(() => {
+    if (!loading) {
+      const templateSettings = {
+        headerText,
+        footerText,
+        showWarranty,
+        showFinancing,
+        showTestimonials,
+        customMessage,
+        termsConditions,
+        warrantyContent,
+        financingContent,
+        testimonialsContent,
+        includedServices
+      };
+      localStorage.setItem('templateSettings', JSON.stringify(templateSettings));
+    }
+  }, [headerText, footerText, showWarranty, showFinancing, showTestimonials, customMessage, 
+      termsConditions, warrantyContent, financingContent, testimonialsContent, includedServices, loading]);
+
   const fetchTemplate = async () => {
     try {
       const data = await templateAPI.get();
@@ -64,8 +85,39 @@ const Templates = () => {
       setShowTestimonials(data.show_testimonials);
       setCustomMessage(data.custom_message || '');
       setTermsConditions(data.terms_conditions || '');
+      
+      // Save current template settings to localStorage
+      const templateSettings = {
+        headerText: data.header_text,
+        footerText: data.footer_text,
+        showWarranty: data.show_warranty,
+        showFinancing: data.show_financing,
+        showTestimonials: data.show_testimonials,
+        customMessage: data.custom_message || '',
+        termsConditions: data.terms_conditions || '',
+        warrantyContent,
+        financingContent,
+        testimonialsContent,
+        includedServices
+      };
+      localStorage.setItem('templateSettings', JSON.stringify(templateSettings));
     } catch (error) {
       console.error('Failed to fetch template:', error);
+      // Save default values to localStorage if API fails
+      const templateSettings = {
+        headerText,
+        footerText,
+        showWarranty,
+        showFinancing,
+        showTestimonials,
+        customMessage,
+        termsConditions,
+        warrantyContent,
+        financingContent,
+        testimonialsContent,
+        includedServices
+      };
+      localStorage.setItem('templateSettings', JSON.stringify(templateSettings));
     } finally {
       setLoading(false);
     }
@@ -81,6 +133,22 @@ const Templates = () => {
   };
 
   const generatePDF = () => {
+    // Save current settings to localStorage before generating PDF
+    const templateSettings = {
+      headerText,
+      footerText,
+      showWarranty,
+      showFinancing,
+      showTestimonials,
+      customMessage,
+      termsConditions,
+      warrantyContent,
+      financingContent,
+      testimonialsContent,
+      includedServices
+    };
+    localStorage.setItem('templateSettings', JSON.stringify(templateSettings));
+    
     const pdf = new jsPDF('p', 'mm', 'a4');
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
@@ -334,6 +402,23 @@ const Templates = () => {
         terms_conditions: termsConditions || undefined,
       });
       setTemplate(updatedTemplate);
+      
+      // Save all template settings to localStorage for use in lead PDFs
+      const templateSettings = {
+        headerText,
+        footerText,
+        showWarranty,
+        showFinancing,
+        showTestimonials,
+        customMessage,
+        termsConditions,
+        warrantyContent,
+        financingContent,
+        testimonialsContent,
+        includedServices
+      };
+      localStorage.setItem('templateSettings', JSON.stringify(templateSettings));
+      
       alert('Template saved successfully!');
     } catch (error) {
       console.error('Failed to save template:', error);

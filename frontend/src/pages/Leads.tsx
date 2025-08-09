@@ -5,7 +5,7 @@ import { Search, Filter, Calendar, Download, Save, Phone, Mail, MapPin, MoreVert
 import { useState, useEffect, useRef } from 'react';
 import { leadAPI } from '../services/api';
 import type { Lead } from '../services/api';
-import { generateQuotePDF, type QuoteData } from '../utils/pdfGenerator';
+import { generateLeadQuotePDF } from '../utils/leadQuotePdf';
 import { DayPicker, type DateRange } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 import { format, startOfDay, endOfDay } from 'date-fns';
@@ -338,30 +338,21 @@ const Leads = () => {
     setEmailModalOpen(true);
   };
 
+  const handleQuotePDF = (lead: Lead) => {
+    const pdf = generateLeadQuotePDF(lead);
+    const fileName = `quote-${lead.name.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.pdf`;
+    pdf.save(fileName);
+  };
+
   const handleSendEmail = async (emailContent: string, includePdf: boolean) => {
     if (!emailModalLead) return;
 
     try {
-      const quoteData: QuoteData = {
-        leadName: emailModalLead.name,
-        leadEmail: emailModalLead.email,
-        leadPhone: emailModalLead.phone ?? '',
-        address: emailModalLead.address,
-        roofSize: emailModalLead.latest_quote?.roof_size_sqft ? `${emailModalLead.latest_quote.roof_size_sqft} sq ft` : '2,500 sq ft',
-        selectedTier: emailModalLead.latest_quote?.selected_tier || 'Better',
-        pricePerSqft: emailModalLead.latest_quote?.price_per_sqft || 8.75,
-        totalPrice: emailModalLead.latest_quote?.total_price || 21875,
-        warranty: emailModalLead.latest_quote?.selected_tier === 'best' ? 'Lifetime' : 
-                  emailModalLead.latest_quote?.selected_tier === 'better' ? '30-year' : '25-year',
-        description: emailModalLead.latest_quote?.selected_tier === 'best' ? 'Premium Designer Shingles' :
-                     emailModalLead.latest_quote?.selected_tier === 'better' ? 'Architectural Shingles' : '3-Tab Shingles',
-        companyName: 'Your Roofing Company',
-        date: new Date().toLocaleDateString()
-      };
-
       let pdfBase64 = null;
       if (includePdf) {
-        const pdfBlob = generateQuotePDF(quoteData);
+        // Use the same PDF generation that respects template settings
+        const pdf = generateLeadQuotePDF(emailModalLead);
+        const pdfBlob = pdf.output('blob');
         const reader = new FileReader();
         pdfBase64 = await new Promise<string>((resolve) => {
           reader.onloadend = () => {
@@ -628,7 +619,7 @@ const Leads = () => {
                       </button>
                       <span className="text-gray-300">|</span>
                       <button 
-                        onClick={() => handleQuoteEmail(lead)}
+                        onClick={() => handleQuotePDF(lead)}
                         className="text-green-600 hover:text-green-700 text-sm font-medium flex items-center gap-1">
                         <FileText className="w-3 h-3" />
                         Quote
@@ -799,13 +790,22 @@ const Leads = () => {
               </button>
               <button
                 onClick={() => {
+                  handleQuotePDF(selectedLead);
+                }}
+                className="px-4 py-2 border border-green-600 text-green-600 rounded-lg hover:bg-green-50 flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Download PDF
+              </button>
+              <button
+                onClick={() => {
                   handleQuoteEmail(selectedLead);
                   setViewModalOpen(false);
                 }}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
               >
                 <Mail className="w-4 h-4" />
-                Send Quote
+                Email Quote
               </button>
             </div>
           </div>
