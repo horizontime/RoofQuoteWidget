@@ -1,12 +1,11 @@
 import Card from '../components/Card';
-import { Code, Copy, ExternalLink, Eye } from 'lucide-react';
+import { Code, Copy, ExternalLink } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import WidgetFlow from './WidgetFlow';
 
 const Widget = () => {
   const [copied, setCopied] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
   
   const embedCode = `<!-- Roof Quote Pro Widget -->
 <div id="roof-quote-widget"></div>
@@ -65,21 +64,14 @@ const Widget = () => {
               </ol>
             </div>
             
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setShowPreview(!showPreview)}
-                className="bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-              >
-                <Eye className="w-5 h-5" />
-                {showPreview ? 'Hide' : 'Show'} Preview
-              </button>
+            <div>
               <Link
                 to="/widget-preview"
                 target="_blank"
-                className="bg-gray-600 text-white px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
+                className="w-full bg-gray-600 text-white px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
               >
                 <ExternalLink className="w-5 h-5" />
-                Open Fullscreen
+                Open Widget in new tab
               </Link>
             </div>
           </div>
@@ -87,30 +79,9 @@ const Widget = () => {
 
         <Card title="Live Preview">
           <div className="bg-gray-50 rounded-lg p-4 h-[600px] relative overflow-hidden">
-            {showPreview ? (
-              <div className="bg-white rounded-lg shadow-sm h-full overflow-auto">
-                <WidgetFlow embedded={true} />
-              </div>
-            ) : (
-              <div className="bg-white rounded-lg shadow-sm h-full flex items-center justify-center">
-                <div className="text-center">
-                  <div className="mb-4">
-                    <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto animate-pulse">
-                      <Code className="w-8 h-8 text-white" />
-                    </div>
-                  </div>
-                  <p className="text-gray-600 mb-2">Widget Preview</p>
-                  <p className="text-sm text-gray-500">Click "Show Live Preview" to see your widget</p>
-                  <button 
-                    onClick={() => setShowPreview(true)}
-                    className="mt-4 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors inline-flex items-center gap-2"
-                  >
-                    <Eye className="w-4 h-4" />
-                    Show Preview
-                  </button>
-                </div>
-              </div>
-            )}
+            <div className="bg-white rounded-lg shadow-sm h-full overflow-auto">
+              <WidgetFlow embedded={true} />
+            </div>
           </div>
         </Card>
       </div>
