@@ -8,13 +8,14 @@ const Widget = () => {
   const [copied, setCopied] = useState(false);
   
   const embedCode = `<!-- Roof Quote Pro Widget -->
-<div id="roof-quote-widget"></div>
-<script src="https://widget.roofquotepro.com/v1/widget.js"></script>
-<script>
-  RoofQuoteWidget.init({
-    contractorId: 'your-contractor-id'
-  });
-</script>`;
+<iframe 
+  src="http://localhost:5173/widget-preview"
+  width="100%"
+  height="700"
+  frameborder="0"
+  style="border: none; max-width: 600px;"
+  title="Roof Quote Pro Widget">
+</iframe>`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(embedCode);
@@ -59,8 +60,9 @@ const Widget = () => {
               <ol className="text-sm text-blue-800 space-y-1">
                 <li>1. Copy the embed code above</li>
                 <li>2. Paste it into your website's HTML where you want the widget to appear</li>
-                <li>3. The widget will automatically load with your configured branding and pricing</li>
-                <li>4. Save and publish your changes</li>
+                <li>3. Make sure the development server is running (npm run dev)</li>
+                <li>4. The widget will load from localhost:5173</li>
+                <li>5. For production, replace the src URL with your deployed widget URL</li>
               </ol>
             </div>
             
