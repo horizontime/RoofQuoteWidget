@@ -575,7 +575,7 @@ const Templates = () => {
         </Card>
 
         <Card title="Live Preview">
-          <div className="bg-gray-50 rounded-lg p-4 h-[600px] overflow-y-auto">
+          <div className="bg-gray-50 rounded-lg p-4 h-[calc(100vh-400px)] min-h-[950px] overflow-y-auto">
             <div className="bg-white shadow-sm rounded-lg p-6">
               <div className="border-b pb-4 mb-4">
                 <div className="flex items-center justify-between">
@@ -682,16 +682,6 @@ const Templates = () => {
                 )}
               </div>
             </div>
-          </div>
-
-          <div className="mt-4 flex justify-center">
-            <button 
-              onClick={() => setIsModalOpen(true)}
-              className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
-            >
-              <Eye className="w-4 h-4 mr-2" />
-              Full Screen Preview
-            </button>
           </div>
         </Card>
       </div>
