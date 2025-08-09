@@ -50,7 +50,7 @@ const Branding = () => {
       // Save branding colors for widget
       localStorage.setItem('branding', JSON.stringify({
         primaryColor,
-        logoUrl,
+        logoUrl: logoUrl ? `http://localhost:8000${logoUrl}` : null,
         fontFamily
       }));
       alert('Branding saved successfully!');
@@ -86,6 +86,13 @@ const Branding = () => {
     try {
       const response = await brandingAPI.uploadLogo(file);
       setLogoUrl(response.logo_url);
+      // Update localStorage immediately after successful upload
+      const currentBranding = localStorage.getItem('branding');
+      const brandingData = currentBranding ? JSON.parse(currentBranding) : {};
+      localStorage.setItem('branding', JSON.stringify({
+        ...brandingData,
+        logoUrl: response.logo_url ? `http://localhost:8000${response.logo_url}` : null
+      }));
       alert('Logo uploaded successfully!');
     } catch (error) {
       console.error('Failed to upload logo:', error);
