@@ -9,15 +9,15 @@ from typing import Optional
 from dotenv import load_dotenv
 from pathlib import Path
 
+router = APIRouter()
+logger = logging.getLogger(__name__)
+
 # Load environment variables from sendgrid.env file
 env_path = Path(__file__).parent.parent / 'sendgrid.env'
 if env_path.exists():
     load_dotenv(env_path)
 else:
     logger.warning(f"SendGrid configuration file not found at {env_path}")
-
-router = APIRouter()
-logger = logging.getLogger(__name__)
 
 class SendQuoteEmailRequest(BaseModel):
     to_email: EmailStr
