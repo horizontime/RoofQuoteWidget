@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   MapPin, 
   ChevronRight, 
@@ -58,9 +58,13 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
   
   // Form data
   const [streetAddress, setStreetAddress] = useState('');
-  const [city, setCity] = useState('');
-  const [zipCode, setZipCode] = useState('');
   const [selectedTier, setSelectedTier] = useState('better');
+  const [addressSuggestions, setAddressSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [autocompleteService, setAutocompleteService] = useState<google.maps.places.AutocompleteService | null>(null);
+  const [placesService, setPlacesService] = useState<google.maps.places.PlacesService | null>(null);
+  const addressInputRef = useRef<HTMLInputElement>(null);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -94,7 +98,25 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
     
     // Load pricing from database
     fetchPricing();
+    
+    // Initialize Google Places Autocomplete Service
+    initializeAutocomplete();
   }, []);
+  
+  const initializeAutocomplete = async () => {
+    try {
+      await loadGoogleMaps();
+      const service = new google.maps.places.AutocompleteService();
+      setAutocompleteService(service);
+      
+      // Create a dummy div for PlacesService (required by the API)
+      const dummyDiv = document.createElement('div');
+      const placesServiceInstance = new google.maps.places.PlacesService(dummyDiv);
+      setPlacesService(placesServiceInstance);
+    } catch (error) {
+      console.error('Failed to initialize autocomplete:', error);
+    }
+  };
   
   const fetchPricing = async () => {
     try {
@@ -117,14 +139,79 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
     }
   };
   
+  const handleAddressInput = useCallback(async (value: string) => {
+    setStreetAddress(value);
+    setHighlightedIndex(-1); // Reset highlighted index when input changes
+    
+    if (!autocompleteService || value.length < 3) {
+      setAddressSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    
+    try {
+      const request = {
+        input: value,
+        componentRestrictions: { country: 'us' },
+        types: ['address']
+      };
+      
+      autocompleteService.getPlacePredictions(request, (predictions, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
+          setAddressSuggestions(predictions);
+          setShowSuggestions(true);
+        } else {
+          setAddressSuggestions([]);
+          setShowSuggestions(false);
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching suggestions:', error);
+    }
+  }, [autocompleteService]);
+  
+  const handleSelectSuggestion = (placeId: string, description: string) => {
+    setStreetAddress(description);
+    setShowSuggestions(false);
+    setAddressSuggestions([]);
+    setHighlightedIndex(-1);
+  };
+  
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showSuggestions || addressSuggestions.length === 0) return;
+    
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setHighlightedIndex(prev => 
+          prev < addressSuggestions.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setHighlightedIndex(prev => prev > 0 ? prev - 1 : -1);
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (highlightedIndex >= 0 && highlightedIndex < addressSuggestions.length) {
+          const suggestion = addressSuggestions[highlightedIndex];
+          handleSelectSuggestion(suggestion.place_id, suggestion.description);
+        }
+        break;
+      case 'Escape':
+        setShowSuggestions(false);
+        setHighlightedIndex(-1);
+        break;
+    }
+  }, [showSuggestions, addressSuggestions, highlightedIndex]);
+  
   const handleAddressSubmit = async () => {
     setIsLoadingMap(true);
     setMapError(null);
     
     try {
       // Geocode the address
-      const fullAddress = `${streetAddress}, ${city}, ${zipCode}`;
-      const geocodeResult = await geocodeAddress(fullAddress);
+      const geocodeResult = await geocodeAddress(streetAddress);
       
       if (!geocodeResult || !geocodeResult.geometry) {
         throw new Error('Could not find location for this address');
@@ -249,60 +336,65 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
         </div>
         
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Street Address</label>
+          <div className="relative">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
             <input
+              ref={addressInputRef}
               type="text"
               value={streetAddress}
-              onChange={(e) => setStreetAddress(e.target.value)}
-              placeholder="e.g. 123 Main Street"
+              onChange={(e) => handleAddressInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onFocus={() => streetAddress.length >= 3 && addressSuggestions.length > 0 && setShowSuggestions(true)}
+              placeholder="Start typing your address..."
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              autoComplete="off"
             />
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
-              <input
-                type="text"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="Denver"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">ZIP Code</label>
-              <input
-                type="text"
-                value={zipCode}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, '').slice(0, 5);
-                  setZipCode(value);
-                }}
-                placeholder="80202"
-                maxLength={5}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-            </div>
+            
+            {showSuggestions && addressSuggestions.length > 0 && (
+              <div className="address-suggestions-dropdown absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                {addressSuggestions.map((suggestion, index) => (
+                  <button
+                    key={suggestion.place_id}
+                    type="button"
+                    onClick={() => handleSelectSuggestion(suggestion.place_id, suggestion.description)}
+                    onMouseEnter={() => setHighlightedIndex(index)}
+                    className={`w-full px-4 py-3 text-left border-b border-gray-100 last:border-b-0 transition-colors duration-150 ${
+                      index === highlightedIndex ? 'bg-gray-100' : 'hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-start">
+                      <MapPin className="w-4 h-4 text-gray-400 mt-0.5 mr-2 flex-shrink-0" />
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {suggestion.structured_formatting.main_text}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {suggestion.structured_formatting.secondary_text}
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
       
       <button
         onClick={handleNextPage}
-        disabled={!streetAddress || !city || zipCode.length !== 5}
+        disabled={!streetAddress || streetAddress.length < 10}
         className="w-full py-3 rounded-lg text-white font-medium flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg"
         style={{ 
-          backgroundColor: (!streetAddress || !city || zipCode.length !== 5) ? '#9ca3af' : primaryColor 
+          backgroundColor: (!streetAddress || streetAddress.length < 10) ? '#9ca3af' : primaryColor 
         }}
         onMouseEnter={(e) => {
-          if (streetAddress && city && zipCode.length === 5) {
+          if (streetAddress && streetAddress.length >= 10) {
             e.currentTarget.style.backgroundColor = darkenColor(primaryColor);
           }
         }}
         onMouseLeave={(e) => {
-          if (streetAddress && city && zipCode.length === 5) {
+          if (streetAddress && streetAddress.length >= 10) {
             e.currentTarget.style.backgroundColor = primaryColor;
           }
         }}
@@ -319,6 +411,35 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
       initializeMap();
     }
   }, [currentPage, polygonPath]);
+  
+  // Handle click outside to close suggestions
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const suggestionsDropdown = document.querySelector('.address-suggestions-dropdown');
+      
+      if (addressInputRef.current && 
+          !addressInputRef.current.contains(target) &&
+          (!suggestionsDropdown || !suggestionsDropdown.contains(target))) {
+        setShowSuggestions(false);
+        setHighlightedIndex(-1);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+  
+  // Scroll highlighted item into view
+  useEffect(() => {
+    if (highlightedIndex >= 0) {
+      const dropdown = document.querySelector('.address-suggestions-dropdown');
+      const highlightedButton = dropdown?.querySelectorAll('button')[highlightedIndex];
+      highlightedButton?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }, [highlightedIndex]);
   
   const initializeMap = async () => {
     if (!mapRef.current) return;
@@ -438,7 +559,7 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
           
           <div className="bg-gray-50 p-4 rounded-lg mb-4">
             <p className="font-medium text-gray-700">
-              {streetAddress}, {city}, {zipCode}
+              {streetAddress}
             </p>
             <p className="text-sm text-gray-600 mt-1">
               Estimated Roof Area: ~{Math.round(calculatedArea).toLocaleString()} sq ft
