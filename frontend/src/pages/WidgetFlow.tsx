@@ -11,7 +11,11 @@ import {
   Building2
 } from 'lucide-react';
 
-const WidgetFlow = () => {
+interface WidgetFlowProps {
+  embedded?: boolean;
+}
+
+const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [companyName, setCompanyName] = useState('Professional Roofing Services');
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -501,7 +505,11 @@ const WidgetFlow = () => {
     }
   };
 
-  return (
+  return embedded ? (
+    <div className="bg-gray-100 p-4 h-full overflow-auto">
+      {renderCurrentPage()}
+    </div>
+  ) : (
     <div className="min-h-screen bg-gray-100 py-8">
       {renderCurrentPage()}
     </div>
