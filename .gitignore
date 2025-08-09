@@ -89,6 +89,7 @@ backend/pdfs/*
 .env.local
 .env.*.local
 backend/.env
+backend/sendgrid.env
 
 # Testing
 htmlcov/

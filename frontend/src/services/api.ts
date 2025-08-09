@@ -65,10 +65,17 @@ export interface Lead {
 }
 
 export interface DashboardStats {
-  totalLeads: number;
-  pendingQuotes: number;
-  totalRevenue: number;
-  conversionRate: number;
+  period: string;
+  summary: {
+    total_leads: number;
+    new_leads: number;
+    total_quotes: number;
+    total_value: number;
+    average_quote_value: number;
+  };
+  lead_status: Record<string, number>;
+  quote_tiers: Record<string, number>;
+  widget_events: Record<string, number>;
 }
 
 export const pricingAPI = {
@@ -150,8 +157,10 @@ export const leadAPI = {
 };
 
 export const analyticsAPI = {
-  getDashboardStats: async (contractorId: number = DEFAULT_CONTRACTOR_ID) => {
-    const response = await api.get<DashboardStats>(`/analytics/dashboard/${contractorId}`);
+  getDashboardStats: async (contractorId: number = DEFAULT_CONTRACTOR_ID, days: number = 30) => {
+    const response = await api.get<DashboardStats>(`/analytics/contractor/${contractorId}/dashboard`, {
+      params: { days }
+    });
     return response.data;
   },
   getRecentLeads: async (contractorId: number = DEFAULT_CONTRACTOR_ID, limit: number = 5) => {

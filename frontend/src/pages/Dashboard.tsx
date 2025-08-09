@@ -1,5 +1,5 @@
 import Card from '../components/Card';
-import { TrendingUp, FileText, DollarSign, Users } from 'lucide-react';
+import { TrendingUp, FileText, DollarSign, Users, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { analyticsAPI } from '../services/api';
@@ -10,10 +10,10 @@ const Dashboard = () => {
   const [recentLeads, setRecentLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [statsData, setStatsData] = useState({
-    totalLeads: 156,
-    quotesGenerated: 89,
-    conversionRate: 57,
-    avgQuoteValue: 8450
+    totalLeads: 0,
+    quotesGenerated: 0,
+    conversionRate: 0,
+    avgQuoteValue: 0
   });
 
   useEffect(() => {
@@ -27,64 +27,47 @@ const Dashboard = () => {
       const leads = await analyticsAPI.getRecentLeads(1, 4);
       setRecentLeads(leads);
       
-      // Try to fetch dashboard stats (may not be implemented yet)
+      // Fetch dashboard stats from the database
       try {
-        const stats = await analyticsAPI.getDashboardStats(1);
+        const stats = await analyticsAPI.getDashboardStats(1, 30);
+        
+        // Calculate conversion rate based on lead statuses
+        const convertedLeads = stats.lead_status.converted || 0;
+        const totalLeads = stats.summary.total_leads || 0;
+        const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
+        
         setStatsData({
-          totalLeads: stats.totalLeads,
-          quotesGenerated: stats.pendingQuotes,
-          conversionRate: Math.round(stats.conversionRate),
-          avgQuoteValue: Math.round(stats.totalRevenue / Math.max(stats.totalLeads, 1))
+          totalLeads: stats.summary.total_leads,
+          quotesGenerated: stats.summary.total_quotes,
+          conversionRate: Math.round(conversionRate),
+          avgQuoteValue: Math.round(stats.summary.average_quote_value)
         });
       } catch (error) {
-        console.log('Using default stats');
+        console.error('Error fetching dashboard stats:', error);
+        // If stats API fails, calculate from leads if available
+        if (leads && leads.length > 0) {
+          const totalLeads = leads.length;
+          const quotesGenerated = leads.filter((lead: Lead) => lead.latest_quote).length;
+          const convertedLeads = leads.filter((lead: Lead) => lead.status === 'converted').length;
+          const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
+          
+          const totalValue = leads.reduce((sum: number, lead: Lead) => {
+            return sum + (lead.latest_quote?.total_price || 0);
+          }, 0);
+          const avgQuoteValue = quotesGenerated > 0 ? totalValue / quotesGenerated : 0;
+          
+          setStatsData({
+            totalLeads,
+            quotesGenerated,
+            conversionRate: Math.round(conversionRate),
+            avgQuoteValue: Math.round(avgQuoteValue)
+          });
+        }
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-      // Fallback to mock data
-      const mockLeads = [
-        { 
-          id: 1, 
-          name: 'John Smith', 
-          email: 'john@example.com',
-          address: '123 Oak St', 
-          created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), 
-          status: 'new',
-          source: 'widget',
-          contractor_id: 1
-        },
-        { 
-          id: 2,
-          name: 'Sarah Johnson', 
-          email: 'sarah@example.com',
-          address: '456 Pine Ave', 
-          created_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(), 
-          status: 'quoted',
-          source: 'widget',
-          contractor_id: 1
-        },
-        { 
-          id: 3,
-          name: 'Mike Davis', 
-          email: 'mike@example.com',
-          address: '789 Elm Dr', 
-          created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), 
-          status: 'contacted',
-          source: 'widget',
-          contractor_id: 1
-        },
-        { 
-          id: 4,
-          name: 'Emily Brown', 
-          email: 'emily@example.com',
-          address: '321 Maple Ln', 
-          created_at: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(), 
-          status: 'converted',
-          source: 'widget',
-          contractor_id: 1
-        }
-      ] as Lead[];
-      setRecentLeads(mockLeads);
+      // Set empty data on error
+      setRecentLeads([]);
     } finally {
       setLoading(false);
     }
@@ -134,8 +117,20 @@ const Dashboard = () => {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome to Roof Quote Pro</h2>
-      <p className="text-gray-600 mb-8">Manage your instant roof quote widget and track leads</p>
+      <div className="flex justify-between items-start mb-8">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome to Roof Quote Pro</h2>
+          <p className="text-gray-600">Manage your instant roof quote widget and track leads</p>
+        </div>
+        <button
+          onClick={fetchDashboardData}
+          disabled={loading}
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          Refresh
+        </button>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {stats.map((stat, index) => {
