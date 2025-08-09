@@ -71,6 +71,15 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [bestTimeToCall, setBestTimeToCall] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
+  const [selectedPitch, setSelectedPitch] = useState<'flat' | 'shallow' | 'medium' | 'steep'>('medium');
+  
+  // Roof pitch multipliers
+  const pitchMultipliers = {
+    flat: 1.0,
+    shallow: 1.15,
+    medium: 1.3,
+    steep: 1.5
+  };
   
   // Use calculated area from polygon or default
   const roofArea = calculatedArea;
@@ -266,7 +275,9 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
       pricePerSqFt = pricingData.best_tier_price;
     }
     
-    return Math.round(roofArea * pricePerSqFt);
+    // Apply pitch multiplier to the price
+    const multiplier = pitchMultipliers[selectedPitch];
+    return Math.round(roofArea * pricePerSqFt * multiplier);
   };
   
   const getTierData = () => {
@@ -565,6 +576,32 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
               Estimated Roof Area: ~{Math.round(calculatedArea).toLocaleString()} sq ft
             </p>
           </div>
+          
+          {/* Roof Pitch Selection */}
+          <div className="mb-4">
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">ROOF PITCH</h4>
+            <div className="grid grid-cols-4 gap-2">
+              {(['flat', 'shallow', 'medium', 'steep'] as const).map((pitch) => (
+                <button
+                  key={pitch}
+                  onClick={() => setSelectedPitch(pitch)}
+                  className={`
+                    py-2 px-3 rounded-lg border-2 font-medium capitalize transition-all duration-200
+                    ${selectedPitch === pitch 
+                      ? 'text-white border-transparent' 
+                      : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                    }
+                  `}
+                  style={{
+                    backgroundColor: selectedPitch === pitch ? primaryColor : undefined,
+                    borderColor: selectedPitch === pitch ? primaryColor : undefined
+                  }}
+                >
+                  {pitch}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
         
         <button
@@ -649,8 +686,16 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
           </div>
           
           <div className="bg-gray-50 p-4 rounded-lg mb-6">
-            <p className="text-sm text-gray-600">Roof Area:</p>
-            <p className="text-2xl font-bold text-gray-900">~{Math.round(roofArea).toLocaleString()} sq ft</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-gray-600">Roof Area:</p>
+                <p className="text-2xl font-bold text-gray-900">~{Math.round(roofArea).toLocaleString()} sq ft</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Roof Pitch:</p>
+                <p className="text-2xl font-bold text-gray-900 capitalize">{selectedPitch}</p>
+              </div>
+            </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -679,7 +724,9 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
                 <p className="text-2xl font-bold text-gray-900">
                   ${calculatePrice(key).toLocaleString()}
                 </p>
-                <p className="text-sm text-gray-500 mb-2">${tier.price.toFixed(2)}/sq ft</p>
+                <p className="text-sm text-gray-500 mb-2">
+                  ${(tier.price * pitchMultipliers[selectedPitch]).toFixed(2)}/sq ft
+                </p>
                 <p className="text-sm text-gray-600 mb-2">{tier.warranty} warranty</p>
                 <div className="border-t pt-2 mt-2">
                   <ul className="space-y-1">
