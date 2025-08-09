@@ -18,7 +18,8 @@ from routers import (
     quote,
     pdf,
     analytics,
-    integration
+    integration,
+    email
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -83,3 +84,4 @@ app.include_router(quote.router, prefix="/api/quotes", tags=["quotes"])
 app.include_router(pdf.router, prefix="/api/pdf", tags=["pdf"])
 app.include_router(analytics.router, prefix="/api/analytics", tags=["analytics"])
 app.include_router(integration.router, prefix="/api/integrations", tags=["integrations"])
+app.include_router(email.router, prefix="/api", tags=["email"])

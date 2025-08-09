@@ -1,5 +1,6 @@
 import Card from '../components/Card';
 import Modal from '../components/Modal';
+import EmailQuoteModal from '../components/EmailQuoteModal';
 import { Search, Filter, Calendar, Download, Save, Phone, Mail, MapPin, MoreVertical, Eye, FileText, Edit2, Trash2 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { leadAPI } from '../services/api';
@@ -29,6 +30,8 @@ const Leads = () => {
   const [tempDateRange, setTempDateRange] = useState<DateRange | undefined>(undefined);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const datePickerRef = useRef<HTMLDivElement | null>(null);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [emailModalLead, setEmailModalLead] = useState<Lead | null>(null);
 
   useEffect(() => {
     fetchLeads();
@@ -331,42 +334,69 @@ const Leads = () => {
   };
 
   const handleQuoteEmail = (lead: Lead) => {
-    const quoteData: QuoteData = {
-      leadName: lead.name,
-      leadEmail: lead.email,
-      leadPhone: lead.phone ?? '',
-      address: lead.address,
-      roofSize: lead.latest_quote?.roof_size_sqft ? `${lead.latest_quote.roof_size_sqft} sq ft` : '2,500 sq ft',
-      selectedTier: lead.latest_quote?.selected_tier || 'Better',
-      pricePerSqft: lead.latest_quote?.price_per_sqft || 8.75,
-      totalPrice: lead.latest_quote?.total_price || 21875,
-      warranty: lead.latest_quote?.selected_tier === 'best' ? 'Lifetime' : 
-                lead.latest_quote?.selected_tier === 'better' ? '30-year' : '25-year',
-      description: lead.latest_quote?.selected_tier === 'best' ? 'Premium Designer Shingles' :
-                   lead.latest_quote?.selected_tier === 'better' ? 'Architectural Shingles' : '3-Tab Shingles',
-      companyName: 'Your Roofing Company',
-      date: new Date().toLocaleDateString()
-    };
+    setEmailModalLead(lead);
+    setEmailModalOpen(true);
+  };
 
-    const pdfBlob = generateQuotePDF(quoteData);
-    const pdfUrl = URL.createObjectURL(pdfBlob);
-    
-    const subject = `Your Roofing Quote - ${lead.address}`;
-    const body = `Dear ${lead.name},\n\nThank you for your interest in our roofing services. Please find attached your personalized roofing quote for your property at ${lead.address}.\n\nQuote Summary:\n- Selected Package: ${quoteData.selectedTier}\n- Roof Size: ${quoteData.roofSize}\n- Total Price: $${quoteData.totalPrice.toLocaleString()}\n- Warranty: ${quoteData.warranty}\n\nThis quote is valid for 30 days. Please feel free to contact us if you have any questions or would like to schedule a consultation.\n\nBest regards,\n${quoteData.companyName}`;
-    
-    const mailtoLink = `mailto:${lead.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    
-    const link = document.createElement('a');
-    link.href = pdfUrl;
-    link.download = `Quote_${lead.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    setTimeout(() => {
-      window.location.href = mailtoLink;
-      URL.revokeObjectURL(pdfUrl);
-    }, 500);
+  const handleSendEmail = async (emailContent: string, includePdf: boolean) => {
+    if (!emailModalLead) return;
+
+    try {
+      const quoteData: QuoteData = {
+        leadName: emailModalLead.name,
+        leadEmail: emailModalLead.email,
+        leadPhone: emailModalLead.phone ?? '',
+        address: emailModalLead.address,
+        roofSize: emailModalLead.latest_quote?.roof_size_sqft ? `${emailModalLead.latest_quote.roof_size_sqft} sq ft` : '2,500 sq ft',
+        selectedTier: emailModalLead.latest_quote?.selected_tier || 'Better',
+        pricePerSqft: emailModalLead.latest_quote?.price_per_sqft || 8.75,
+        totalPrice: emailModalLead.latest_quote?.total_price || 21875,
+        warranty: emailModalLead.latest_quote?.selected_tier === 'best' ? 'Lifetime' : 
+                  emailModalLead.latest_quote?.selected_tier === 'better' ? '30-year' : '25-year',
+        description: emailModalLead.latest_quote?.selected_tier === 'best' ? 'Premium Designer Shingles' :
+                     emailModalLead.latest_quote?.selected_tier === 'better' ? 'Architectural Shingles' : '3-Tab Shingles',
+        companyName: 'Your Roofing Company',
+        date: new Date().toLocaleDateString()
+      };
+
+      let pdfBase64 = null;
+      if (includePdf) {
+        const pdfBlob = generateQuotePDF(quoteData);
+        const reader = new FileReader();
+        pdfBase64 = await new Promise<string>((resolve) => {
+          reader.onloadend = () => {
+            const base64String = reader.result as string;
+            resolve(base64String.split(',')[1]);
+          };
+          reader.readAsDataURL(pdfBlob);
+        });
+      }
+
+      const response = await fetch('http://localhost:8000/api/send-quote-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to_email: emailModalLead.email,
+          subject: `Your Roofing Quote - ${emailModalLead.address}`,
+          email_content: emailContent,
+          pdf_base64: pdfBase64,
+          lead_name: emailModalLead.name,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send email');
+      }
+
+      setNotification({ type: 'success', message: 'Quote email sent successfully!' });
+      setTimeout(() => setNotification(null), 3000);
+    } catch (error) {
+      console.error('Error sending email:', error);
+      setNotification({ type: 'error', message: 'Failed to send email. Please try again.' });
+      setTimeout(() => setNotification(null), 3000);
+    }
   };
 
   return (
@@ -960,6 +990,16 @@ const Leads = () => {
           </div>
         )}
       </Modal>
+
+      <EmailQuoteModal
+        isOpen={emailModalOpen}
+        onClose={() => {
+          setEmailModalOpen(false);
+          setEmailModalLead(null);
+        }}
+        lead={emailModalLead}
+        onSend={handleSendEmail}
+      />
     </div>
   );
 };
