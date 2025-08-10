@@ -43,6 +43,7 @@ export interface TemplateData {
   show_testimonials: boolean;
   custom_message?: string;
   terms_conditions?: string;
+  included_services?: string[];
 }
 
 export interface Lead {

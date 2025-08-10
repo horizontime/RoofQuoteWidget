@@ -86,6 +86,11 @@ const Templates = () => {
       setCustomMessage(data.custom_message || '');
       setTermsConditions(data.terms_conditions || '');
       
+      // Set included services from backend if available
+      if (data.included_services && Array.isArray(data.included_services)) {
+        setIncludedServices(data.included_services);
+      }
+      
       // Save current template settings to localStorage
       const templateSettings = {
         headerText: data.header_text,
@@ -98,7 +103,7 @@ const Templates = () => {
         warrantyContent,
         financingContent,
         testimonialsContent,
-        includedServices
+        includedServices: data.included_services || includedServices
       };
       localStorage.setItem('templateSettings', JSON.stringify(templateSettings));
     } catch (error) {
@@ -400,6 +405,7 @@ const Templates = () => {
         show_testimonials: showTestimonials,
         custom_message: customMessage || undefined,
         terms_conditions: termsConditions || undefined,
+        included_services: includedServices,
       });
       setTemplate(updatedTemplate);
       

@@ -4,7 +4,7 @@ from database import get_db
 from models import Template, Contractor
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 router = APIRouter()
 
@@ -16,6 +16,13 @@ class TemplateBase(BaseModel):
     show_testimonials: bool = True
     custom_message: Optional[str] = None
     terms_conditions: Optional[str] = None
+    included_services: Optional[List[str]] = [
+        "Complete tear-off of existing roofing",
+        "Installation of new underlayment",
+        "New drip edge and flashing",
+        "Ridge vent installation",
+        "Full cleanup and debris removal"
+    ]
 
 class TemplateCreate(TemplateBase):
     contractor_id: int
@@ -28,6 +35,7 @@ class TemplateUpdate(BaseModel):
     show_testimonials: Optional[bool] = None
     custom_message: Optional[str] = None
     terms_conditions: Optional[str] = None
+    included_services: Optional[List[str]] = None
 
 class TemplateResponse(TemplateBase):
     id: int

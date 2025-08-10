@@ -73,6 +73,13 @@ class Template(Base):
     show_testimonials = Column(Boolean, default=True)
     custom_message = Column(Text)
     terms_conditions = Column(Text)
+    included_services = Column(JSON, default=[
+        "Complete tear-off of existing roofing",
+        "Installation of new underlayment",
+        "New drip edge and flashing",
+        "Ridge vent installation",
+        "Full cleanup and debris removal"
+    ])
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
