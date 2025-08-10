@@ -59,10 +59,13 @@ const Dashboard = () => {
         const contacted = stats.lead_status.contacted || 0;
         const converted = stats.lead_status.converted || 0;
         
+        // Calculate percentages so they add up to 100%
+        const statusTotal = quoted + contacted + converted;
+        
         setConversionData([
-          { stage: 'Quoted', count: quoted, percentage: totalLeads > 0 ? Math.round((quoted / totalLeads) * 100) : 0, color: '#8b5cf6' },
-          { stage: 'Contacted', count: contacted, percentage: totalLeads > 0 ? Math.round((contacted / totalLeads) * 100) : 0, color: '#f59e0b' },
-          { stage: 'Converted', count: converted, percentage: totalLeads > 0 ? Math.round((converted / totalLeads) * 100) : 0, color: '#10b981' }
+          { stage: 'Quoted', count: quoted, percentage: statusTotal > 0 ? Math.round((quoted / statusTotal) * 100) : 0, color: '#8b5cf6' },
+          { stage: 'Contacted', count: contacted, percentage: statusTotal > 0 ? Math.round((contacted / statusTotal) * 100) : 0, color: '#f59e0b' },
+          { stage: 'Converted', count: converted, percentage: statusTotal > 0 ? Math.round((converted / statusTotal) * 100) : 0, color: '#10b981' }
         ]);
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);
@@ -88,10 +91,13 @@ const Dashboard = () => {
           });
           
           // Update conversion funnel data from leads
+          // Calculate percentages so they add up to 100%
+          const statusTotal = quotedLeads + contactedLeads + convertedLeads;
+          
           setConversionData([
-            { stage: 'Quoted', count: quotedLeads, percentage: totalLeads > 0 ? Math.round((quotedLeads / totalLeads) * 100) : 0, color: '#8b5cf6' },
-            { stage: 'Contacted', count: contactedLeads, percentage: totalLeads > 0 ? Math.round((contactedLeads / totalLeads) * 100) : 0, color: '#f59e0b' },
-            { stage: 'Converted', count: convertedLeads, percentage: totalLeads > 0 ? Math.round((convertedLeads / totalLeads) * 100) : 0, color: '#10b981' }
+            { stage: 'Quoted', count: quotedLeads, percentage: statusTotal > 0 ? Math.round((quotedLeads / statusTotal) * 100) : 0, color: '#8b5cf6' },
+            { stage: 'Contacted', count: contactedLeads, percentage: statusTotal > 0 ? Math.round((contactedLeads / statusTotal) * 100) : 0, color: '#f59e0b' },
+            { stage: 'Converted', count: convertedLeads, percentage: statusTotal > 0 ? Math.round((convertedLeads / statusTotal) * 100) : 0, color: '#10b981' }
           ]);
         }
       }
@@ -214,7 +220,7 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card title="Lead Bar Graph (last 30 days)">
+        <Card title="Lead Stage (last 30 days)">
           <div className="flex justify-end mb-2">
             <button
               onClick={() => setShowPercentage(!showPercentage)}
