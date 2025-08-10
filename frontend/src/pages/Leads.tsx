@@ -77,6 +77,8 @@ const Leads = () => {
           status: 'new',
           source: 'widget',
           notes: undefined,
+          best_time_to_call: 'morning',
+          additional_notes: 'Interested in premium shingles. Has concerns about HOA requirements.',
           contractor_id: 1,
           created_at: '2024-01-15T00:00:00.000Z',
           updated_at: '2024-01-15T00:00:00.000Z',
@@ -98,6 +100,8 @@ const Leads = () => {
           status: 'quoted',
           source: 'widget',
           notes: undefined,
+          best_time_to_call: 'afternoon',
+          additional_notes: 'Looking for eco-friendly options. Would like to schedule inspection next week.',
           contractor_id: 1,
           created_at: '2024-01-14T00:00:00.000Z',
           updated_at: '2024-01-14T00:00:00.000Z',
@@ -119,6 +123,7 @@ const Leads = () => {
           status: 'contacted',
           source: 'widget',
           notes: undefined,
+          best_time_to_call: 'evening',
           contractor_id: 1,
           created_at: '2024-01-13T00:00:00.000Z',
           updated_at: '2024-01-13T00:00:00.000Z',
@@ -739,9 +744,9 @@ const Leads = () => {
                   <MapPin className="w-3 h-3" />
                   {selectedLead.address}
                 </p>
-                {selectedLead.latest_quote && (
-                  <p className="text-sm text-gray-600 mt-1">
-                    Roof Size: {selectedLead.latest_quote.roof_size_sqft} sq ft
+                {selectedLead.latest_quote && selectedLead.latest_quote.roof_size_sqft && (
+                  <p className="text-sm text-gray-900 mt-2">
+                    <span className="font-medium">Roof Size:</span> {Math.round(selectedLead.latest_quote.roof_size_sqft).toLocaleString()} sq ft
                   </p>
                 )}
               </div>
@@ -758,7 +763,7 @@ const Leads = () => {
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Price per Sq Ft</p>
-                      <p className="text-sm font-semibold">${selectedLead.latest_quote.price_per_sqft}</p>
+                      <p className="text-sm font-semibold">${selectedLead.latest_quote.price_per_sqft ? selectedLead.latest_quote.price_per_sqft.toFixed(2) : '0.00'}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Total Price</p>
@@ -780,6 +785,20 @@ const Leads = () => {
                 </p>
               </div>
             </div>
+
+            {selectedLead.best_time_to_call && (
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-medium text-gray-500 mb-2">Best Time to Call</h4>
+                <p className="text-sm text-gray-900 capitalize">{selectedLead.best_time_to_call}</p>
+              </div>
+            )}
+
+            {selectedLead.additional_notes && (
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-medium text-gray-500 mb-2">Lead Notes</h4>
+                <p className="text-sm text-gray-900 whitespace-pre-wrap">{selectedLead.additional_notes}</p>
+              </div>
+            )}
 
             <div className="flex justify-end gap-3 pt-4 border-t">
               <button

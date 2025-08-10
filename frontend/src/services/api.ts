@@ -54,6 +54,8 @@ export interface Lead {
   status: string;
   source: string;
   notes?: string;
+  best_time_to_call?: string;
+  additional_notes?: string;
   contractor_id: number;
   created_at: string;
   updated_at?: string;

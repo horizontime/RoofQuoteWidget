@@ -87,6 +87,8 @@ async def get_contractor_leads(
                 'id': latest_quote.id,
                 'total_price': latest_quote.total_price,
                 'selected_tier': latest_quote.selected_tier,
+                'roof_size_sqft': latest_quote.roof_size_sqft,
+                'price_per_sqft': latest_quote.total_price / latest_quote.roof_size_sqft if latest_quote.roof_size_sqft else 0,
                 'created_at': latest_quote.created_at
             }
         else:
@@ -107,6 +109,8 @@ async def get_lead(lead_id: int, db: Session = Depends(get_db)):
         lead_dict['latest_quote'] = {
             'id': latest_quote.id,
             'total_price': latest_quote.total_price,
+            'roof_size_sqft': latest_quote.roof_size_sqft,
+            'price_per_sqft': latest_quote.total_price / latest_quote.roof_size_sqft if latest_quote.roof_size_sqft else 0,
             'selected_tier': latest_quote.selected_tier,
             'created_at': latest_quote.created_at
         }
