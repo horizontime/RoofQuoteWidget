@@ -73,6 +73,7 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [bestTimeToCall, setBestTimeToCall] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
+  const [emailSent, setEmailSent] = useState(false);
   
   // Format phone number as (xxx) xxx-xxxx
   const formatPhoneNumber = (value: string) => {
@@ -197,7 +198,7 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
       await handleAddressSubmit();
     }
     
-    // Capture lead when moving from page 4 to page 5
+    // Capture lead and send email when moving from page 4 to page 5
     if (currentPage === 4) {
       try {
         const tierData: any = getTierData();
@@ -226,6 +227,97 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
         // Submit lead to backend
         await leadAPI.createWidgetLead(leadData);
         console.log('Lead captured successfully');
+        
+        // Generate PDF and send email
+        try {
+          // Create lead object for PDF generation
+          const leadForPdf: Lead = {
+            id: Date.now(),
+            name: `${firstName} ${lastName}`.trim() || 'Customer',
+            email: email || 'customer@email.com',
+            phone: phoneNumber || '',
+            address: streetAddress || '123 Main Street',
+            status: 'new',
+            source: 'widget',
+            contractor_id: 1,
+            created_at: new Date().toISOString(),
+            latest_quote: {
+              id: Date.now(),
+              total_price: totalPrice,
+              selected_tier: selectedTier,
+              roof_size_sqft: Math.round(roofArea),
+              price_per_sqft: selectedTierData?.price || 8.75,
+              created_at: new Date().toISOString()
+            }
+          };
+          
+          // Generate PDF
+          const pdf = generateLeadQuotePDF(leadForPdf);
+          
+          // Convert PDF to base64
+          const pdfBase64 = pdf.output('datauristring').split(',')[1];
+          
+          // Prepare email content
+          const emailContent = `Dear ${firstName} ${lastName},
+
+Thank you for requesting a roof quote! We're excited to help you with your roofing project.
+
+Quote Summary:
+• Property Address: ${streetAddress}
+• Estimated Roof Size: ${Math.round(roofArea).toLocaleString()} sq ft
+• Selected Package: ${selectedTier.charAt(0).toUpperCase() + selectedTier.slice(1)}
+• Total Estimated Price: $${totalPrice.toLocaleString()}
+
+Please find your detailed quote attached as a PDF. This quote includes:
+• Complete pricing breakdown
+• Material specifications
+• Warranty information
+• Next steps
+
+What's Next?
+One of our roofing specialists will contact you within 24-48 hours to:
+• Schedule a detailed roof inspection
+• Answer any questions you may have
+• Discuss financing options if needed
+• Confirm final measurements and pricing
+
+If you have any immediate questions, please don't hesitate to reach out to us.
+
+Best regards,
+${companyName || 'Your Local Roofing Expert'}`;
+          
+          // Send email with PDF attachment
+          const emailRequest = {
+            to_email: email,
+            subject: `Your Roof Quote from ${companyName || 'Your Local Roofing Expert'}`,
+            email_content: emailContent,
+            pdf_base64: pdfBase64,
+            lead_name: `${firstName} ${lastName}`.trim()
+          };
+          
+          const response = await fetch('http://localhost:8000/api/send-quote-email', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(emailRequest),
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            console.log('Quote email sent successfully:', result.message);
+            setEmailSent(true);
+          } else {
+            const errorText = await response.text();
+            console.warn('Email service unavailable:', errorText);
+            // Still show success to user since lead was captured and PDF can be downloaded
+            console.log('Lead captured successfully. PDF available for download on confirmation page.');
+            setEmailSent(false);
+          }
+        } catch (emailError) {
+          console.error('Error sending email:', emailError);
+          // Don't block the flow if email fails
+        }
       } catch (error) {
         console.error('Error capturing lead:', error);
         // Still proceed to thank you page even if lead capture fails
@@ -1015,14 +1107,22 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
         </div>
         
         <h3 className="text-2xl font-bold text-gray-900 mb-2">Thank You!</h3>
-        <p className="text-lg text-gray-600">Your detailed proposal is on its way.</p>
+        <p className="text-lg text-gray-600">
+          {emailSent 
+            ? "Your detailed proposal has been sent to your email." 
+            : "Your quote is ready! Download it below."}
+        </p>
       </div>
       
       <div className="bg-green-50 rounded-lg p-6 mb-8">
         <div className="space-y-3">
           <div className="flex items-center">
             <Mail className="w-5 h-5 text-green-600 mr-3" />
-            <span className="text-gray-700">PDF proposal sent to your email</span>
+            <span className="text-gray-700">
+              {emailSent 
+                ? "PDF proposal sent to your email" 
+                : "Download your PDF proposal below"}
+            </span>
           </div>
           <div className="flex items-center">
             <Calendar className="w-5 h-5 text-green-600 mr-3" />
