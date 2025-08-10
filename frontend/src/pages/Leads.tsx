@@ -104,125 +104,33 @@ const Leads = () => {
   const fetchLeads = async () => {
     try {
       setLoading(true);
-      const params = {
-        skip: (currentPage - 1) * leadsPerPage,
-        limit: leadsPerPage,
+      // First, fetch ALL leads to get the total count and apply filtering
+      const allParams = {
+        skip: 0,
+        limit: 1000, // Get all leads
         status: statusFilter !== 'all' ? statusFilter : undefined,
         search: searchTerm || undefined,
       };
-      const data = await leadAPI.getContractorLeads(1, params);
-      const filtered = filterLeadsByDateRange(data, dateRange);
+      const allData = await leadAPI.getContractorLeads(1, allParams);
+      
+      // Apply client-side filtering and sorting
+      const filtered = filterLeadsByDateRange(allData, dateRange);
       const sorted = sortLeads(filtered);
-      setLeads(sorted);
-      // For demo, set total based on filtered data
-      setTotalLeads(filtered.length);
+      
+      // Set total count
+      setTotalLeads(sorted.length);
+      
+      // Apply pagination on the sorted data
+      const startIndex = (currentPage - 1) * leadsPerPage;
+      const endIndex = startIndex + leadsPerPage;
+      setLeads(sorted.slice(startIndex, endIndex));
     } catch (error) {
       console.error('Error fetching leads:', error);
-      // Fallback to mock data if API fails
-      const mockLeads: Lead[] = [
-        {
-          id: 1,
-          name: 'John Smith',
-          email: 'john.smith@email.com',
-          phone: '(555) 123-4567',
-          address: '123 Oak Street, Springfield, IL 62701',
-          status: 'new',
-          source: 'widget',
-          best_time_to_call: 'morning',
-          additional_notes: 'Interested in premium shingles. Has concerns about HOA requirements.',
-          contractor_id: 1,
-          created_at: '2024-01-15T00:00:00.000Z',
-          updated_at: '2024-01-15T00:00:00.000Z',
-          latest_quote: {
-            id: 101,
-            total_price: 21875,
-            selected_tier: 'better',
-            roof_size_sqft: 2500,
-            price_per_sqft: 8.75,
-            created_at: '2024-01-15T00:00:00.000Z',
-          },
-        },
-        {
-          id: 2,
-          name: 'Sarah Johnson',
-          email: 'sarah.j@email.com',
-          phone: '(555) 234-5678',
-          address: '456 Pine Avenue, Springfield, IL 62702',
-          status: 'quoted',
-          source: 'widget',
-          best_time_to_call: 'afternoon',
-          additional_notes: 'Looking for eco-friendly options. Would like to schedule inspection next week.',
-          contractor_id: 1,
-          created_at: '2024-01-14T00:00:00.000Z',
-          updated_at: '2024-01-14T00:00:00.000Z',
-          latest_quote: {
-            id: 102,
-            total_price: 28000,
-            selected_tier: 'best',
-            roof_size_sqft: 3200,
-            price_per_sqft: 8.75,
-            created_at: '2024-01-14T00:00:00.000Z',
-          },
-        },
-        {
-          id: 3,
-          name: 'Mike Davis',
-          email: 'mdavis@email.com',
-          phone: '(555) 345-6789',
-          address: '789 Elm Drive, Springfield, IL 62703',
-          status: 'contacted',
-          source: 'widget',
-          best_time_to_call: 'evening',
-          contractor_id: 1,
-          created_at: '2024-01-13T00:00:00.000Z',
-          updated_at: '2024-01-13T00:00:00.000Z',
-          latest_quote: {
-            id: 103,
-            total_price: 15750,
-            selected_tier: 'good',
-            roof_size_sqft: 1800,
-            price_per_sqft: 8.75,
-            created_at: '2024-01-13T00:00:00.000Z',
-          },
-        },
-        {
-          id: 4,
-          name: 'Emily Brown',
-          email: 'emily.brown@email.com',
-          phone: '(555) 456-7890',
-          address: '321 Maple Lane, Springfield, IL 62704',
-          status: 'converted',
-          source: 'widget',
-          contractor_id: 1,
-          created_at: '2024-01-12T00:00:00.000Z',
-          updated_at: '2024-01-12T00:00:00.000Z',
-          latest_quote: {
-            id: 104,
-            total_price: 18375,
-            selected_tier: 'better',
-            roof_size_sqft: 2100,
-            price_per_sqft: 8.75,
-            created_at: '2024-01-12T00:00:00.000Z',
-          },
-        },
-        {
-          id: 5,
-          name: 'Robert Wilson',
-          email: 'r.wilson@email.com',
-          phone: '(555) 567-8901',
-          address: '654 Cedar Road, Springfield, IL 62705',
-          status: 'lost',
-          source: 'widget',
-          contractor_id: 1,
-          created_at: '2024-01-11T00:00:00.000Z',
-          updated_at: '2024-01-11T00:00:00.000Z',
-          latest_quote: undefined,
-        },
-      ];
-      const filtered = filterLeadsByDateRange(mockLeads, dateRange);
-      const sorted = sortLeads(filtered);
-      setLeads(sorted);
-      setTotalLeads(filtered.length);
+      // Show error notification
+      setNotification({ type: 'error', message: 'Failed to load leads. Please check your connection.' });
+      setTimeout(() => setNotification(null), 5000);
+      setLeads([]);
+      setTotalLeads(0);
     } finally {
       setLoading(false);
     }
@@ -773,60 +681,93 @@ const Leads = () => {
           </table>
         </div>
 
-        {totalLeads > leadsPerPage && (
-          <div className="mt-6 flex items-center justify-between">
-            <p className="text-sm text-gray-600">
-              Showing {Math.min(((currentPage - 1) * leadsPerPage) + 1, totalLeads)} to {Math.min(currentPage * leadsPerPage, totalLeads)} of {totalLeads} results
-            </p>
-            <div className="flex gap-2">
+        <div className="mt-6 flex items-center justify-between">
+          <p className="text-sm text-gray-600">
+            Showing {leads.length === 0 ? 0 : Math.min(((currentPage - 1) * leadsPerPage) + 1, totalLeads)} to {Math.min(currentPage * leadsPerPage, totalLeads)} of {totalLeads} results
+          </p>
+          {totalLeads > leadsPerPage && (
+            <div className="flex gap-1">
               <button 
-                className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50" 
+                className="px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" 
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage(currentPage - 1)}
               >
                 Previous
               </button>
-              {[...Array(Math.min(5, Math.ceil(totalLeads / leadsPerPage)))].map((_, index) => (
-                <button 
-                  key={index + 1}
-                  className={`px-3 py-1 border rounded ${
-                    currentPage === index + 1 
-                      ? 'bg-green-600 text-white border-green-600' 
-                      : 'border-gray-300 hover:bg-gray-50'
-                  }`}
-                  onClick={() => setCurrentPage(index + 1)}
-                >
-                  {index + 1}
-                </button>
-              ))}
-              {Math.ceil(totalLeads / leadsPerPage) > 5 && (
-                <>
-                  <button className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">...</button>
-                  <button 
-                    className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50"
-                    onClick={() => setCurrentPage(Math.ceil(totalLeads / leadsPerPage))}
-                  >
-                    {Math.ceil(totalLeads / leadsPerPage)}
-                  </button>
-                </>
-              )}
+              
+              {(() => {
+                const totalPages = Math.ceil(totalLeads / leadsPerPage);
+                const pageNumbers = [];
+                
+                if (totalPages <= 7) {
+                  // Show all pages if 7 or fewer
+                  for (let i = 1; i <= totalPages; i++) {
+                    pageNumbers.push(i);
+                  }
+                } else {
+                  // Always show first page
+                  pageNumbers.push(1);
+                  
+                  if (currentPage > 3) {
+                    pageNumbers.push('...');
+                  }
+                  
+                  // Show pages around current page
+                  const start = Math.max(2, currentPage - 1);
+                  const end = Math.min(totalPages - 1, currentPage + 1);
+                  
+                  for (let i = start; i <= end; i++) {
+                    if (!pageNumbers.includes(i)) {
+                      pageNumbers.push(i);
+                    }
+                  }
+                  
+                  if (currentPage < totalPages - 2) {
+                    pageNumbers.push('...');
+                  }
+                  
+                  // Always show last page
+                  if (!pageNumbers.includes(totalPages)) {
+                    pageNumbers.push(totalPages);
+                  }
+                }
+                
+                return pageNumbers.map((page, index) => {
+                  if (page === '...') {
+                    return (
+                      <span key={`ellipsis-${index}`} className="px-3 py-1.5 text-gray-400">
+                        ...
+                      </span>
+                    );
+                  }
+                  
+                  const pageNum = page as number;
+                  return (
+                    <button 
+                      key={pageNum}
+                      className={`min-w-[32px] px-3 py-1.5 text-sm border rounded ${
+                        currentPage === pageNum 
+                          ? 'bg-green-600 text-white border-green-600 font-medium' 
+                          : 'text-gray-600 border-gray-300 hover:bg-gray-50'
+                      }`}
+                      onClick={() => setCurrentPage(pageNum)}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                });
+              })()}
+              
               <button 
-                className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
+                className="px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={currentPage >= Math.ceil(totalLeads / leadsPerPage)}
                 onClick={() => setCurrentPage(currentPage + 1)}
               >
                 Next
               </button>
             </div>
-          </div>
-        )}
-        {totalLeads <= leadsPerPage && totalLeads > 0 && (
-          <div className="mt-6">
-            <p className="text-sm text-gray-600">
-              Showing all {totalLeads} result{totalLeads === 1 ? '' : 's'}
-            </p>
-          </div>
-        )}
+          )}
+        </div>
       </Card>
 
       <Modal
