@@ -71,6 +71,31 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  
+  // Format phone number as (xxx) xxx-xxxx
+  const formatPhoneNumber = (value: string) => {
+    // Remove all non-digits
+    const phoneNumber = value.replace(/\D/g, '');
+    
+    // Format based on length
+    if (phoneNumber.length === 0) {
+      return '';
+    } else if (phoneNumber.length <= 3) {
+      return `(${phoneNumber}`;
+    } else if (phoneNumber.length <= 6) {
+      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`;
+    } else if (phoneNumber.length <= 10) {
+      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6)}`;
+    } else {
+      // Don't allow more than 10 digits
+      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`;
+    }
+  };
+  
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhoneNumber(e.target.value);
+    setPhoneNumber(formatted);
+  };
   const [bestTimeToCall, setBestTimeToCall] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
   const [selectedPitch, setSelectedPitch] = useState<'flat' | 'shallow' | 'medium' | 'steep'>('medium');
@@ -873,7 +898,8 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
             <input
               type="tel"
               value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
+              onChange={handlePhoneChange}
+              placeholder="(555) 123-4567"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
             />
           </div>
