@@ -3,6 +3,7 @@ from database import SessionLocal, engine
 from models import Contractor, Pricing, Branding, Template, Shingle, WidgetSettings, Lead, Quote
 import uuid
 import logging
+from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +109,8 @@ def seed_database():
             shingle = Shingle(**shingle_data)
             db.add(shingle)
         
+        # Create leads with different timestamps
+        now = datetime.utcnow()
         sample_leads = [
             {
                 "contractor_id": contractor.id,
@@ -117,7 +120,8 @@ def seed_database():
                 "address": "456 Oak St, Dallas, TX 75202",
                 "status": "new",
                 "source": "widget",
-                "notes": "Interested in premium shingles"
+                "notes": "Interested in premium shingles",
+                "created_at": now - timedelta(minutes=5)  # 5 minutes ago
             },
             {
                 "contractor_id": contractor.id,
@@ -127,7 +131,8 @@ def seed_database():
                 "address": "789 Pine Ave, Dallas, TX 75203",
                 "status": "contacted",
                 "source": "widget",
-                "notes": "Requested quote for architectural shingles"
+                "notes": "Requested quote for architectural shingles",
+                "created_at": now - timedelta(hours=2)  # 2 hours ago
             },
             {
                 "contractor_id": contractor.id,
@@ -137,7 +142,41 @@ def seed_database():
                 "address": "321 Elm Dr, Dallas, TX 75204",
                 "status": "quoted",
                 "source": "widget",
-                "notes": "Comparing multiple contractors"
+                "notes": "Comparing multiple contractors",
+                "created_at": now - timedelta(days=1)  # 1 day ago
+            },
+            {
+                "contractor_id": contractor.id,
+                "name": "Emily Davis",
+                "email": "emily.d@email.com",
+                "phone": "555-0104",
+                "address": "654 Maple Ave, Dallas, TX 75205",
+                "status": "converted",
+                "source": "widget",
+                "notes": "Signed contract for full roof replacement",
+                "created_at": now - timedelta(days=3)  # 3 days ago
+            },
+            {
+                "contractor_id": contractor.id,
+                "name": "Robert Brown",
+                "email": "robert.b@email.com",
+                "phone": "555-0105",
+                "address": "987 Cedar Ln, Dallas, TX 75206",
+                "status": "quoted",
+                "source": "widget",
+                "notes": "Requested GAF Timberline HDZ quote",
+                "created_at": now - timedelta(weeks=1)  # 1 week ago
+            },
+            {
+                "contractor_id": contractor.id,
+                "name": "Lisa Anderson",
+                "email": "lisa.a@email.com",
+                "phone": "555-0106",
+                "address": "246 Birch St, Dallas, TX 75207",
+                "status": "new",
+                "source": "widget",
+                "notes": "Emergency repair needed",
+                "created_at": now - timedelta(weeks=2)  # 2 weeks ago
             }
         ]
         
@@ -155,6 +194,7 @@ def seed_database():
                 removal_cost=3750.00,
                 permit_cost=350.00,
                 total_price=25975.00,
+                created_at=lead.created_at,  # Use same timestamp as lead
                 quote_data={
                     "roof_squares": 25,
                     "complexity": "moderate",

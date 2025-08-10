@@ -25,7 +25,11 @@ const Dashboard = () => {
       setLoading(true);
       // Fetch recent leads
       const leads = await analyticsAPI.getRecentLeads(1, 4);
-      setRecentLeads(leads);
+      // Sort leads by newest first
+      const sortedLeads = [...leads].sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      setRecentLeads(sortedLeads);
       
       // Fetch dashboard stats from the database
       try {
@@ -77,15 +81,45 @@ const Dashboard = () => {
     const date = new Date(dateString);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffSeconds = Math.floor(diffMs / 1000);
+    const diffMinutes = Math.floor(diffSeconds / 60);
+    const diffHours = Math.floor(diffMinutes / 60);
     const diffDays = Math.floor(diffHours / 24);
+    const diffWeeks = Math.floor(diffDays / 7);
+    const diffMonths = Math.floor(diffDays / 30);
 
-    if (diffHours < 1) {
+    if (diffSeconds < 60) {
       return 'Just now';
+    } else if (diffMinutes < 60) {
+      if (diffMinutes === 1) {
+        return '1 min ago';
+      } else {
+        return `${diffMinutes} mins ago`;
+      }
     } else if (diffHours < 24) {
-      return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+      if (diffHours === 1) {
+        return '1 hr ago';
+      } else {
+        return `${diffHours} hrs ago`;
+      }
     } else if (diffDays < 7) {
-      return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+      if (diffDays === 1) {
+        return '1 day ago';
+      } else {
+        return `${diffDays} days ago`;
+      }
+    } else if (diffWeeks < 4) {
+      if (diffWeeks === 1) {
+        return '1 week ago';
+      } else {
+        return `${diffWeeks} weeks ago`;
+      }
+    } else if (diffMonths < 12) {
+      if (diffMonths === 1) {
+        return '1 month ago';
+      } else {
+        return `${diffMonths} months ago`;
+      }
     } else {
       return date.toLocaleDateString();
     }
