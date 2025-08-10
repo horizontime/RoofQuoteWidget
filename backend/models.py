@@ -91,7 +91,6 @@ class Lead(Base):
     additional_notes = Column(Text)  # renamed from notes for clarity
     status = Column(String(50), default="new")
     source = Column(String(50), default="widget")
-    notes = Column(Text)  # keeping this for admin notes
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     

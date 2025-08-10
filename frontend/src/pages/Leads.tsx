@@ -76,7 +76,6 @@ const Leads = () => {
           address: '123 Oak Street, Springfield, IL 62701',
           status: 'new',
           source: 'widget',
-          notes: undefined,
           best_time_to_call: 'morning',
           additional_notes: 'Interested in premium shingles. Has concerns about HOA requirements.',
           contractor_id: 1,
@@ -99,7 +98,6 @@ const Leads = () => {
           address: '456 Pine Avenue, Springfield, IL 62702',
           status: 'quoted',
           source: 'widget',
-          notes: undefined,
           best_time_to_call: 'afternoon',
           additional_notes: 'Looking for eco-friendly options. Would like to schedule inspection next week.',
           contractor_id: 1,
@@ -122,7 +120,6 @@ const Leads = () => {
           address: '789 Elm Drive, Springfield, IL 62703',
           status: 'contacted',
           source: 'widget',
-          notes: undefined,
           best_time_to_call: 'evening',
           contractor_id: 1,
           created_at: '2024-01-13T00:00:00.000Z',
@@ -144,7 +141,6 @@ const Leads = () => {
           address: '321 Maple Lane, Springfield, IL 62704',
           status: 'converted',
           source: 'widget',
-          notes: undefined,
           contractor_id: 1,
           created_at: '2024-01-12T00:00:00.000Z',
           updated_at: '2024-01-12T00:00:00.000Z',
@@ -165,7 +161,6 @@ const Leads = () => {
           address: '654 Cedar Road, Springfield, IL 62705',
           status: 'lost',
           source: 'widget',
-          notes: undefined,
           contractor_id: 1,
           created_at: '2024-01-11T00:00:00.000Z',
           updated_at: '2024-01-11T00:00:00.000Z',
@@ -313,7 +308,6 @@ const Leads = () => {
           phone: editForm.phone,
           address: editForm.address,
           status: editForm.status,
-          notes: editForm.notes,
         });
         
         // Update local state with the response from server

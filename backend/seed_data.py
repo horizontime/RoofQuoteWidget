@@ -120,7 +120,7 @@ def seed_database():
                 "address": "456 Oak St, Dallas, TX 75202",
                 "status": "new",
                 "source": "widget",
-                "notes": "Interested in premium shingles",
+                "additional_notes": "Interested in premium shingles",
                 "created_at": now - timedelta(minutes=5)  # 5 minutes ago
             },
             {
@@ -131,7 +131,7 @@ def seed_database():
                 "address": "789 Pine Ave, Dallas, TX 75203",
                 "status": "contacted",
                 "source": "widget",
-                "notes": "Requested quote for architectural shingles",
+                "additional_notes": "Requested quote for architectural shingles",
                 "created_at": now - timedelta(hours=2)  # 2 hours ago
             },
             {
@@ -142,7 +142,7 @@ def seed_database():
                 "address": "321 Elm Dr, Dallas, TX 75204",
                 "status": "quoted",
                 "source": "widget",
-                "notes": "Comparing multiple contractors",
+                "additional_notes": "Comparing multiple contractors",
                 "created_at": now - timedelta(days=1)  # 1 day ago
             },
             {
@@ -153,7 +153,7 @@ def seed_database():
                 "address": "654 Maple Ave, Dallas, TX 75205",
                 "status": "converted",
                 "source": "widget",
-                "notes": "Signed contract for full roof replacement",
+                "additional_notes": "Signed contract for full roof replacement",
                 "created_at": now - timedelta(days=3)  # 3 days ago
             },
             {
@@ -164,7 +164,7 @@ def seed_database():
                 "address": "987 Cedar Ln, Dallas, TX 75206",
                 "status": "quoted",
                 "source": "widget",
-                "notes": "Requested GAF Timberline HDZ quote",
+                "additional_notes": "Requested GAF Timberline HDZ quote",
                 "created_at": now - timedelta(weeks=1)  # 1 week ago
             },
             {
@@ -175,7 +175,7 @@ def seed_database():
                 "address": "246 Birch St, Dallas, TX 75207",
                 "status": "new",
                 "source": "widget",
-                "notes": "Emergency repair needed",
+                "additional_notes": "Emergency repair needed",
                 "created_at": now - timedelta(weeks=2)  # 2 weeks ago
             }
         ]

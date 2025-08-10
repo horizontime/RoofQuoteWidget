@@ -21,7 +21,6 @@ class LeadBase(BaseModel):
     additional_notes: Optional[str] = None
     status: str = "new"
     source: str = "widget"
-    notes: Optional[str] = None
 
 class LeadCreate(LeadBase):
     contractor_id: int
@@ -34,7 +33,6 @@ class LeadUpdate(BaseModel):
     best_time_to_call: Optional[str] = None
     additional_notes: Optional[str] = None
     status: Optional[str] = None
-    notes: Optional[str] = None
 
 class LeadResponse(LeadBase):
     id: int
@@ -178,7 +176,7 @@ async def export_leads(
     output = io.StringIO()
     writer = csv.DictWriter(
         output,
-        fieldnames=['id', 'name', 'email', 'phone', 'address', 'status', 'source', 'notes', 'created_at']
+        fieldnames=['id', 'name', 'email', 'phone', 'address', 'status', 'source', 'additional_notes', 'created_at']
     )
     writer.writeheader()
     
@@ -191,7 +189,7 @@ async def export_leads(
             'address': lead.address,
             'status': lead.status,
             'source': lead.source,
-            'notes': lead.notes,
+            'additional_notes': lead.additional_notes,
             'created_at': lead.created_at.isoformat() if lead.created_at else ''
         })
     
