@@ -17,11 +17,11 @@ const Dashboard = () => {
     avgQuoteValue: 0
   });
   const [conversionData, setConversionData] = useState([
-    { stage: 'Total Leads', count: 0, percentage: 100, color: '#3b82f6' },
     { stage: 'Quoted', count: 0, percentage: 0, color: '#8b5cf6' },
     { stage: 'Contacted', count: 0, percentage: 0, color: '#f59e0b' },
     { stage: 'Converted', count: 0, percentage: 0, color: '#10b981' }
   ]);
+  const [showPercentage, setShowPercentage] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -60,7 +60,6 @@ const Dashboard = () => {
         const converted = stats.lead_status.converted || 0;
         
         setConversionData([
-          { stage: 'Total Leads', count: totalLeads, percentage: 100, color: '#3b82f6' },
           { stage: 'Quoted', count: quoted, percentage: totalLeads > 0 ? Math.round((quoted / totalLeads) * 100) : 0, color: '#8b5cf6' },
           { stage: 'Contacted', count: contacted, percentage: totalLeads > 0 ? Math.round((contacted / totalLeads) * 100) : 0, color: '#f59e0b' },
           { stage: 'Converted', count: converted, percentage: totalLeads > 0 ? Math.round((converted / totalLeads) * 100) : 0, color: '#10b981' }
@@ -90,7 +89,6 @@ const Dashboard = () => {
           
           // Update conversion funnel data from leads
           setConversionData([
-            { stage: 'Total Leads', count: totalLeads, percentage: 100, color: '#3b82f6' },
             { stage: 'Quoted', count: quotedLeads, percentage: totalLeads > 0 ? Math.round((quotedLeads / totalLeads) * 100) : 0, color: '#8b5cf6' },
             { stage: 'Contacted', count: contactedLeads, percentage: totalLeads > 0 ? Math.round((contactedLeads / totalLeads) * 100) : 0, color: '#f59e0b' },
             { stage: 'Converted', count: convertedLeads, percentage: totalLeads > 0 ? Math.round((convertedLeads / totalLeads) * 100) : 0, color: '#10b981' }
@@ -216,24 +214,42 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card title="Lead Conversion Funnel">
+        <Card title="Lead Bar Graph (last 30 days)">
+          <div className="flex justify-end mb-2">
+            <button
+              onClick={() => setShowPercentage(!showPercentage)}
+              className="text-sm px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Show {showPercentage ? 'Numbers' : 'Percentages'}
+            </button>
+          </div>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={conversionData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="stage" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
+                <YAxis 
+                  tick={{ fontSize: 12 }}
+                  label={showPercentage ? { value: 'Percentage (%)', angle: -90, position: 'insideLeft' } : { value: 'Number of Leads', angle: -90, position: 'insideLeft' }}
+                  allowDecimals={showPercentage}
+                  domain={[0, 'dataMax']}
+                  tickFormatter={showPercentage ? undefined : (value: number) => Math.round(value).toString()}
+                />
                 <Tooltip 
                   formatter={(value: any, name: string) => {
-                    if (name === 'count') {
-                      const dataPoint = conversionData.find(d => d.count === value);
-                      return [`${value} (${dataPoint?.percentage}%)`, 'Leads'];
+                    if (name === 'count' || name === 'percentage') {
+                      const dataPoint = conversionData.find(d => showPercentage ? d.percentage === value : d.count === value);
+                      if (showPercentage) {
+                        return [`${value}% (${dataPoint?.count} leads)`, 'Value'];
+                      } else {
+                        return [`${value} leads (${dataPoint?.percentage}%)`, 'Value'];
+                      }
                     }
                     return [value, name];
                   }}
                   contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
                 />
-                <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                <Bar dataKey={showPercentage ? "percentage" : "count"} radius={[8, 8, 0, 0]}>
                   {conversionData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
@@ -241,11 +257,13 @@ const Dashboard = () => {
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-4">
+          <div className="mt-4 grid grid-cols-3 gap-4">
             {conversionData.map((item) => (
               <div key={item.stage} className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded" style={{ backgroundColor: item.color }} />
-                <span className="text-sm text-gray-600">{item.stage}: {item.percentage}%</span>
+                <span className="text-sm text-gray-600">
+                  {item.stage}: {showPercentage ? `${item.percentage}%` : item.count}
+                </span>
               </div>
             ))}
           </div>
