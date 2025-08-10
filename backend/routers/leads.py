@@ -1,3 +1,4 @@
+# Leads router - fixed datetime formatting
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
@@ -42,6 +43,9 @@ class LeadResponse(LeadBase):
     
     class Config:
         from_attributes = True
+        json_encoders = {
+            datetime: lambda v: v.strftime('%Y-%m-%dT%H:%M:%S.%f') if v else None
+        }
 
 class LeadWithQuote(LeadResponse):
     latest_quote: Optional[dict] = None
@@ -74,11 +78,34 @@ async def get_contractor_leads(
             )
         )
     
-    leads = query.offset(skip).limit(limit).all()
+    # Order by created_at descending (newest first) for consistent sorting
+    leads = query.order_by(Lead.created_at.desc()).offset(skip).limit(limit).all()
     
     result = []
     for lead in leads:
         lead_dict = lead.__dict__.copy()
+        # Ensure consistent datetime formatting with microseconds
+        if lead_dict.get('created_at') and lead.created_at:
+            # Ensure microseconds are always included for consistent sorting
+            if hasattr(lead.created_at, 'isoformat'):
+                dt = lead.created_at
+                # If the datetime doesn't have microseconds, add them as .000000
+                if dt.microsecond == 0:
+                    lead_dict['created_at'] = dt.strftime('%Y-%m-%dT%H:%M:%S.000000')
+                else:
+                    lead_dict['created_at'] = dt.isoformat()
+            else:
+                lead_dict['created_at'] = lead.created_at
+        if lead_dict.get('updated_at') and lead.updated_at:
+            if hasattr(lead.updated_at, 'isoformat'):
+                dt = lead.updated_at
+                if dt.microsecond == 0:
+                    lead_dict['updated_at'] = dt.strftime('%Y-%m-%dT%H:%M:%S.000000')
+                else:
+                    lead_dict['updated_at'] = dt.isoformat()
+            else:
+                lead_dict['updated_at'] = lead.updated_at
+        
         latest_quote = db.query(Quote).filter(Quote.lead_id == lead.id).order_by(Quote.created_at.desc()).first()
         if latest_quote:
             lead_dict['latest_quote'] = {
@@ -87,7 +114,7 @@ async def get_contractor_leads(
                 'selected_tier': latest_quote.selected_tier,
                 'roof_size_sqft': latest_quote.roof_size_sqft,
                 'price_per_sqft': latest_quote.total_price / latest_quote.roof_size_sqft if latest_quote.roof_size_sqft else 0,
-                'created_at': latest_quote.created_at
+                'created_at': latest_quote.created_at.strftime('%Y-%m-%dT%H:%M:%S.000000') if hasattr(latest_quote.created_at, 'strftime') and latest_quote.created_at.microsecond == 0 else latest_quote.created_at.isoformat() if hasattr(latest_quote.created_at, 'isoformat') else latest_quote.created_at
             }
         else:
             lead_dict['latest_quote'] = None
@@ -102,6 +129,26 @@ async def get_lead(lead_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Lead not found")
     
     lead_dict = lead.__dict__.copy()
+    # Ensure consistent datetime formatting with microseconds
+    if lead_dict.get('created_at') and lead.created_at:
+        if hasattr(lead.created_at, 'isoformat'):
+            dt = lead.created_at
+            if dt.microsecond == 0:
+                lead_dict['created_at'] = dt.strftime('%Y-%m-%dT%H:%M:%S.000000')
+            else:
+                lead_dict['created_at'] = dt.isoformat()
+        else:
+            lead_dict['created_at'] = lead.created_at
+    if lead_dict.get('updated_at') and lead.updated_at:
+        if hasattr(lead.updated_at, 'isoformat'):
+            dt = lead.updated_at
+            if dt.microsecond == 0:
+                lead_dict['updated_at'] = dt.strftime('%Y-%m-%dT%H:%M:%S.000000')
+            else:
+                lead_dict['updated_at'] = dt.isoformat()
+        else:
+            lead_dict['updated_at'] = lead.updated_at
+    
     latest_quote = db.query(Quote).filter(Quote.lead_id == lead.id).order_by(Quote.created_at.desc()).first()
     if latest_quote:
         lead_dict['latest_quote'] = {
@@ -110,7 +157,7 @@ async def get_lead(lead_id: int, db: Session = Depends(get_db)):
             'roof_size_sqft': latest_quote.roof_size_sqft,
             'price_per_sqft': latest_quote.total_price / latest_quote.roof_size_sqft if latest_quote.roof_size_sqft else 0,
             'selected_tier': latest_quote.selected_tier,
-            'created_at': latest_quote.created_at
+            'created_at': latest_quote.created_at.isoformat() if hasattr(latest_quote.created_at, 'isoformat') else latest_quote.created_at
         }
     else:
         lead_dict['latest_quote'] = None
