@@ -1,7 +1,7 @@
 import Modal from './Modal';
 import { useState, useEffect } from 'react';
 import { Mail, FileText, Send, X } from 'lucide-react';
-import { generateQuotePDF, type QuoteData } from '../utils/pdfGenerator';
+import { generateLeadQuotePDF } from '../utils/leadQuotePdf';
 import type { Lead } from '../services/api';
 
 interface EmailQuoteModalProps {
@@ -18,55 +18,60 @@ const EmailQuoteModal = ({ isOpen, onClose, lead, onSend }: EmailQuoteModalProps
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
+    // Clean up previous PDF URL when component unmounts or lead changes
+    return () => {
+      if (pdfPreviewUrl) {
+        URL.revokeObjectURL(pdfPreviewUrl);
+        setPdfPreviewUrl(null);
+      }
+    };
+  }, [pdfPreviewUrl]);
+
+  useEffect(() => {
     if (lead) {
-      const quoteData = getQuoteData(lead);
+      // Get company name from localStorage or use default
+      const companyName = localStorage.getItem('companyName') || 'Professional Roofing Services';
+      
+      // Determine the tier details
+      const selectedTier = lead.latest_quote?.selected_tier || 'better';
+      const tierNames: Record<string, string> = {
+        'good': 'Good - 3-Tab Shingles',
+        'better': 'Better - Architectural Shingles', 
+        'best': 'Best - Designer Shingles'
+      };
+      const warranty = selectedTier === 'best' ? 'Lifetime warranty' : 
+                      selectedTier === 'better' ? '30-year warranty' : '25-year warranty';
+      
       const defaultEmail = `Dear ${lead.name},
 
 Thank you for your interest in our roofing services. Please find attached your personalized roofing quote for your property at ${lead.address}.
 
 Quote Summary:
-- Selected Package: ${quoteData.selectedTier}
-- Roof Size: ${quoteData.roofSize}
-- Total Price: $${quoteData.totalPrice.toLocaleString()}
-- Warranty: ${quoteData.warranty}
+- Selected Package: ${tierNames[selectedTier] || tierNames['better']}
+- Roof Size: ${lead.latest_quote?.roof_size_sqft ? `${lead.latest_quote.roof_size_sqft.toLocaleString()} sq ft` : '2,500 sq ft'}
+- Total Price: $${lead.latest_quote?.total_price ? lead.latest_quote.total_price.toLocaleString() : '21,875'}
+- Warranty: ${warranty}
 
 This quote is valid for 30 days. Please feel free to contact us if you have any questions or would like to schedule a consultation.
 
 Best regards,
-${quoteData.companyName}`;
+${companyName}`;
       
       setEmailContent(defaultEmail);
       
-      const pdfBlob = generateQuotePDF(quoteData);
-      const url = URL.createObjectURL(pdfBlob);
-      setPdfPreviewUrl(url);
-    }
-    
-    return () => {
+      // Clean up previous URL if exists
       if (pdfPreviewUrl) {
         URL.revokeObjectURL(pdfPreviewUrl);
       }
-    };
+      
+      // Generate PDF using the template-based generator
+      const pdf = generateLeadQuotePDF(lead);
+      const pdfBlob = pdf.output('blob');
+      const url = URL.createObjectURL(pdfBlob);
+      setPdfPreviewUrl(url);
+    }
   }, [lead]);
 
-  const getQuoteData = (lead: Lead): QuoteData => {
-    return {
-      leadName: lead.name,
-      leadEmail: lead.email,
-      leadPhone: lead.phone ?? '',
-      address: lead.address,
-      roofSize: lead.latest_quote?.roof_size_sqft ? `${lead.latest_quote.roof_size_sqft} sq ft` : '2,500 sq ft',
-      selectedTier: lead.latest_quote?.selected_tier || 'Better',
-      pricePerSqft: lead.latest_quote?.price_per_sqft || 8.75,
-      totalPrice: lead.latest_quote?.total_price || 21875,
-      warranty: lead.latest_quote?.selected_tier === 'best' ? 'Lifetime' : 
-                lead.latest_quote?.selected_tier === 'better' ? '30-year' : '25-year',
-      description: lead.latest_quote?.selected_tier === 'best' ? 'Premium Designer Shingles' :
-                   lead.latest_quote?.selected_tier === 'better' ? 'Architectural Shingles' : '3-Tab Shingles',
-      companyName: 'Your Roofing Company',
-      date: new Date().toLocaleDateString()
-    };
-  };
 
   const handleSend = async () => {
     if (!lead) return;
