@@ -1,7 +1,7 @@
 import Card from '../components/Card';
 import Modal from '../components/Modal';
 import EmailQuoteModal from '../components/EmailQuoteModal';
-import { Search, Filter, Calendar, Download, Save, Phone, Mail, MapPin, MoreVertical, Eye, FileText, Edit2, Trash2 } from 'lucide-react';
+import { Search, Filter, Calendar, Download, Save, Phone, Mail, MapPin, MoreVertical, Eye, FileText, Edit2, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { leadAPI } from '../services/api';
 import type { Lead } from '../services/api';
@@ -32,10 +32,12 @@ const Leads = () => {
   const datePickerRef = useRef<HTMLDivElement | null>(null);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [emailModalLead, setEmailModalLead] = useState<Lead | null>(null);
+  const [sortField, setSortField] = useState<'name' | 'address' | 'total_price' | 'status' | 'created_at' | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
     fetchLeads();
-  }, [searchTerm, statusFilter, currentPage, dateRange]);
+  }, [searchTerm, statusFilter, currentPage, dateRange, sortField, sortDirection]);
 
   const filterLeadsByDateRange = (inputLeads: Lead[], range?: DateRange): Lead[] => {
     if (!range || (!range.from && !range.to)) return inputLeads;
@@ -50,6 +52,55 @@ const Leads = () => {
     });
   };
 
+  const sortLeads = (leadsToSort: Lead[]): Lead[] => {
+    if (!sortField) return leadsToSort;
+
+    const sorted = [...leadsToSort].sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+
+      switch (sortField) {
+        case 'name':
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        case 'address':
+          aValue = a.address.toLowerCase();
+          bValue = b.address.toLowerCase();
+          break;
+        case 'total_price':
+          aValue = a.latest_quote?.total_price || 0;
+          bValue = b.latest_quote?.total_price || 0;
+          break;
+        case 'status':
+          aValue = a.status.toLowerCase();
+          bValue = b.status.toLowerCase();
+          break;
+        case 'created_at':
+          aValue = new Date(a.created_at).getTime();
+          bValue = new Date(b.created_at).getTime();
+          break;
+        default:
+          return 0;
+      }
+
+      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return sorted;
+  };
+
+  const handleSort = (field: 'name' | 'address' | 'total_price' | 'status' | 'created_at') => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
   const fetchLeads = async () => {
     try {
       setLoading(true);
@@ -61,7 +112,8 @@ const Leads = () => {
       };
       const data = await leadAPI.getContractorLeads(1, params);
       const filtered = filterLeadsByDateRange(data, dateRange);
-      setLeads(filtered);
+      const sorted = sortLeads(filtered);
+      setLeads(sorted);
       // For demo, set total based on filtered data
       setTotalLeads(filtered.length);
     } catch (error) {
@@ -168,7 +220,8 @@ const Leads = () => {
         },
       ];
       const filtered = filterLeadsByDateRange(mockLeads, dateRange);
-      setLeads(filtered);
+      const sorted = sortLeads(filtered);
+      setLeads(sorted);
       setTotalLeads(filtered.length);
     } finally {
       setLoading(false);
@@ -546,11 +599,76 @@ const Leads = () => {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 font-medium text-gray-700">LEAD</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">PROPERTY</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">ESTIMATE</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">STATUS</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">DATE</th>
+                <th 
+                  className="text-left py-3 px-4 font-medium text-gray-700 cursor-pointer hover:bg-gray-50 select-none"
+                  onClick={() => handleSort('name')}
+                >
+                  <div className="flex items-center gap-1">
+                    LEAD
+                    {sortField === 'name' && (
+                      sortDirection === 'asc' ? 
+                        <ChevronUp className="w-4 h-4" /> : 
+                        <ChevronDown className="w-4 h-4" />
+                    )}
+                    {sortField !== 'name' && <div className="w-4 h-4" />}
+                  </div>
+                </th>
+                <th 
+                  className="text-left py-3 px-4 font-medium text-gray-700 cursor-pointer hover:bg-gray-50 select-none"
+                  onClick={() => handleSort('address')}
+                >
+                  <div className="flex items-center gap-1">
+                    PROPERTY
+                    {sortField === 'address' && (
+                      sortDirection === 'asc' ? 
+                        <ChevronUp className="w-4 h-4" /> : 
+                        <ChevronDown className="w-4 h-4" />
+                    )}
+                    {sortField !== 'address' && <div className="w-4 h-4" />}
+                  </div>
+                </th>
+                <th 
+                  className="text-left py-3 px-4 font-medium text-gray-700 cursor-pointer hover:bg-gray-50 select-none"
+                  onClick={() => handleSort('total_price')}
+                >
+                  <div className="flex items-center gap-1">
+                    ESTIMATE
+                    {sortField === 'total_price' && (
+                      sortDirection === 'asc' ? 
+                        <ChevronUp className="w-4 h-4" /> : 
+                        <ChevronDown className="w-4 h-4" />
+                    )}
+                    {sortField !== 'total_price' && <div className="w-4 h-4" />}
+                  </div>
+                </th>
+                <th 
+                  className="text-left py-3 px-4 font-medium text-gray-700 cursor-pointer hover:bg-gray-50 select-none"
+                  onClick={() => handleSort('status')}
+                >
+                  <div className="flex items-center gap-1">
+                    STATUS
+                    {sortField === 'status' && (
+                      sortDirection === 'asc' ? 
+                        <ChevronUp className="w-4 h-4" /> : 
+                        <ChevronDown className="w-4 h-4" />
+                    )}
+                    {sortField !== 'status' && <div className="w-4 h-4" />}
+                  </div>
+                </th>
+                <th 
+                  className="text-left py-3 px-4 font-medium text-gray-700 cursor-pointer hover:bg-gray-50 select-none"
+                  onClick={() => handleSort('created_at')}
+                >
+                  <div className="flex items-center gap-1">
+                    DATE
+                    {sortField === 'created_at' && (
+                      sortDirection === 'asc' ? 
+                        <ChevronUp className="w-4 h-4" /> : 
+                        <ChevronDown className="w-4 h-4" />
+                    )}
+                    {sortField !== 'created_at' && <div className="w-4 h-4" />}
+                  </div>
+                </th>
                 <th className="text-left py-3 px-4 font-medium text-gray-700">ACTIONS</th>
               </tr>
             </thead>
