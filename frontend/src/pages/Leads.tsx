@@ -738,7 +738,7 @@ const Leads = () => {
                       <button 
                         onClick={() => handleQuotePDF(lead)}
                         className="text-green-600 hover:text-green-700 text-sm font-medium flex items-center gap-1">
-                        <FileText className="w-3 h-3" />
+                        <Download className="w-3 h-3" />
                         Quote
                       </button>
                       <div className="relative" ref={(el) => { dropdownRefs.current[lead.id] = el; }}>
