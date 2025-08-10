@@ -157,6 +157,26 @@ export const leadAPI = {
     });
     return response.data;
   },
+  createWidgetLead: async (leadData: {
+    contractor_id: number;
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone?: string;
+    address: string;
+    best_time_to_call?: string;
+    additional_notes?: string;
+    roof_size_sqft: number;
+    roof_pitch?: string;
+    selected_tier: string;
+    good_tier_price: number;
+    better_tier_price: number;
+    best_tier_price: number;
+    total_price: number;
+  }) => {
+    const response = await api.post<Lead>('/leads/widget-capture', leadData);
+    return response.data;
+  },
 };
 
 export const analyticsAPI = {

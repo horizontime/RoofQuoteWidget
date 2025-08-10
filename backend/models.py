@@ -87,9 +87,11 @@ class Lead(Base):
     email = Column(String(255), nullable=False)
     phone = Column(String(20))
     address = Column(String(500), nullable=False)
+    best_time_to_call = Column(String(50))  # morning, afternoon, evening
+    additional_notes = Column(Text)  # renamed from notes for clarity
     status = Column(String(50), default="new")
     source = Column(String(50), default="widget")
-    notes = Column(Text)
+    notes = Column(Text)  # keeping this for admin notes
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
@@ -103,7 +105,11 @@ class Quote(Base):
     lead_id = Column(Integer, ForeignKey("leads.id"))
     address = Column(String(500), nullable=False)
     roof_size_sqft = Column(Float, nullable=False)
+    roof_pitch = Column(String(50))  # 4/12, 6/12, 8/12, etc.
     selected_tier = Column(String(50))
+    good_tier_price = Column(Float)  # Store all tier prices for reference
+    better_tier_price = Column(Float)
+    best_tier_price = Column(Float)
     base_price = Column(Float, nullable=False)
     removal_cost = Column(Float, default=0)
     permit_cost = Column(Float, default=0)

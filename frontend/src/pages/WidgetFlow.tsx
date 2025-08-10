@@ -11,7 +11,7 @@ import {
   Building2,
   Download
 } from 'lucide-react';
-import { pricingAPI } from '../services/api';
+import { pricingAPI, leadAPI } from '../services/api';
 import type { PricingData, Lead } from '../services/api';
 import { loadGoogleMaps, createMap, createPolygon, calculatePolygonArea, metersToSquareFeet, geocodeAddress, convertPolygonPointsToGoogleMaps } from '../services/mapService';
 import { OverpassService } from '../services/overpassService';
@@ -71,6 +71,8 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [bestTimeToCall, setBestTimeToCall] = useState('');
+  const [additionalNotes, setAdditionalNotes] = useState('');
   
   // Format phone number as (xxx) xxx-xxxx
   const formatPhoneNumber = (value: string) => {
@@ -96,8 +98,7 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
     const formatted = formatPhoneNumber(e.target.value);
     setPhoneNumber(formatted);
   };
-  const [bestTimeToCall, setBestTimeToCall] = useState('');
-  const [additionalNotes, setAdditionalNotes] = useState('');
+  
   const [selectedPitch, setSelectedPitch] = useState<'flat' | 'shallow' | 'medium' | 'steep'>('medium');
   
   // Roof pitch multipliers
@@ -195,6 +196,42 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
       // When moving from page 1 to page 2, geocode address and fetch building
       await handleAddressSubmit();
     }
+    
+    // Capture lead when moving from page 4 to page 5
+    if (currentPage === 4) {
+      try {
+        const tierData: any = getTierData();
+        const selectedTierData = tierData[selectedTier];
+        const totalPrice = selectedTierData ? Math.round(roofArea * selectedTierData.price * pitchMultipliers[selectedPitch]) : 0;
+        
+        // Create lead data for backend
+        const leadData = {
+          contractor_id: 1, // Using default contractor ID for now
+          first_name: firstName,
+          last_name: lastName,
+          email: email,
+          phone: phoneNumber || undefined,
+          address: streetAddress,
+          best_time_to_call: bestTimeToCall || undefined,
+          additional_notes: additionalNotes || undefined,
+          roof_size_sqft: roofArea,
+          roof_pitch: selectedPitch,
+          selected_tier: selectedTier,
+          good_tier_price: pricingData?.good_tier_price || 6.50,
+          better_tier_price: pricingData?.better_tier_price || 8.75,
+          best_tier_price: pricingData?.best_tier_price || 12.00,
+          total_price: totalPrice
+        };
+        
+        // Submit lead to backend
+        await leadAPI.createWidgetLead(leadData);
+        console.log('Lead captured successfully');
+      } catch (error) {
+        console.error('Error capturing lead:', error);
+        // Still proceed to thank you page even if lead capture fails
+      }
+    }
+    
     if (currentPage < 5) {
       setCurrentPage(currentPage + 1);
     }

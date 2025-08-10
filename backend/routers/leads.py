@@ -17,6 +17,8 @@ class LeadBase(BaseModel):
     email: str
     phone: Optional[str] = None
     address: str
+    best_time_to_call: Optional[str] = None
+    additional_notes: Optional[str] = None
     status: str = "new"
     source: str = "widget"
     notes: Optional[str] = None
@@ -29,6 +31,8 @@ class LeadUpdate(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     address: Optional[str] = None
+    best_time_to_call: Optional[str] = None
+    additional_notes: Optional[str] = None
     status: Optional[str] = None
     notes: Optional[str] = None
 
@@ -196,3 +200,69 @@ async def export_leads(
             "Content-Disposition": f"attachment; filename=leads_{contractor.company_name.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.csv"
         }
     )
+
+class WidgetLeadCreate(BaseModel):
+    contractor_id: int
+    first_name: str
+    last_name: str
+    email: str
+    phone: Optional[str] = None
+    address: str
+    best_time_to_call: Optional[str] = None
+    additional_notes: Optional[str] = None
+    roof_size_sqft: float
+    roof_pitch: Optional[str] = None
+    selected_tier: str
+    good_tier_price: float
+    better_tier_price: float
+    best_tier_price: float
+    total_price: float
+
+@router.post("/widget-capture", response_model=LeadResponse)
+async def create_widget_lead(lead_data: WidgetLeadCreate, db: Session = Depends(get_db)):
+    """
+    Create a new lead from the widget with quote information
+    """
+    contractor = db.query(Contractor).filter(Contractor.id == lead_data.contractor_id).first()
+    if not contractor:
+        raise HTTPException(status_code=404, detail="Contractor not found")
+    
+    # Create the lead
+    db_lead = Lead(
+        contractor_id=lead_data.contractor_id,
+        name=f"{lead_data.first_name} {lead_data.last_name}",
+        email=lead_data.email,
+        phone=lead_data.phone,
+        address=lead_data.address,
+        best_time_to_call=lead_data.best_time_to_call,
+        additional_notes=lead_data.additional_notes,
+        status="new",
+        source="widget"
+    )
+    db.add(db_lead)
+    db.flush()  # Flush to get the lead ID without committing
+    
+    # Create the quote
+    db_quote = Quote(
+        lead_id=db_lead.id,
+        address=lead_data.address,
+        roof_size_sqft=lead_data.roof_size_sqft,
+        roof_pitch=lead_data.roof_pitch,
+        selected_tier=lead_data.selected_tier,
+        good_tier_price=lead_data.good_tier_price,
+        better_tier_price=lead_data.better_tier_price,
+        best_tier_price=lead_data.best_tier_price,
+        base_price=lead_data.total_price,
+        total_price=lead_data.total_price,
+        quote_data={
+            "roof_pitch": lead_data.roof_pitch,
+            "selected_tier": lead_data.selected_tier,
+            "timestamp": datetime.now().isoformat()
+        }
+    )
+    db.add(db_quote)
+    
+    db.commit()
+    db.refresh(db_lead)
+    
+    return db_lead
