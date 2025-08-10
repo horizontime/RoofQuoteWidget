@@ -8,14 +8,16 @@ import {
   Calendar, 
   ClipboardCheck,
   Phone,
-  Building2
+  Building2,
+  Download
 } from 'lucide-react';
 import { pricingAPI } from '../services/api';
-import type { PricingData } from '../services/api';
+import type { PricingData, Lead } from '../services/api';
 import { loadGoogleMaps, createMap, createPolygon, calculatePolygonArea, metersToSquareFeet, geocodeAddress, convertPolygonPointsToGoogleMaps } from '../services/mapService';
 import { OverpassService } from '../services/overpassService';
 import type { BuildingFootprint } from '../services/overpassService';
 import { usePolygonEditor } from '../hooks/usePolygonEditor';
+import { generateLeadQuotePDF } from '../utils/leadQuotePdf';
 
 interface WidgetFlowProps {
   embedded?: boolean;
@@ -138,6 +140,31 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
     }
   };
 
+  const getTierData = () => {
+    if (!pricingData) return {};
+    
+    return {
+      good: {
+        name: pricingData.good_tier_name,
+        price: pricingData.good_tier_price,
+        warranty: pricingData.good_tier_warranty,
+        features: pricingData.good_tier_features
+      },
+      better: {
+        name: pricingData.better_tier_name,
+        price: pricingData.better_tier_price,
+        warranty: pricingData.better_tier_warranty,
+        features: pricingData.better_tier_features
+      },
+      best: {
+        name: pricingData.best_tier_name,
+        price: pricingData.best_tier_price,
+        warranty: pricingData.best_tier_warranty,
+        features: pricingData.best_tier_features
+      }
+    };
+  };
+
   const handleNextPage = async () => {
     if (currentPage === 1) {
       // When moving from page 1 to page 2, geocode address and fetch building
@@ -146,6 +173,38 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
     if (currentPage < 5) {
       setCurrentPage(currentPage + 1);
     }
+  };
+  
+  const handleDownloadProposal = () => {
+    // Create a lead-like object with the user's information
+    const tierData: any = getTierData();
+    const selectedTierData = tierData[selectedTier];
+    const totalPrice = selectedTierData ? Math.round(roofArea * selectedTierData.price * pitchMultipliers[selectedPitch]) : 0;
+    
+    const leadData: Lead = {
+      id: Date.now(), // Generate a temporary ID
+      name: `${firstName} ${lastName}`.trim() || 'Customer',
+      email: email || 'customer@email.com',
+      phone: phoneNumber || '',
+      address: streetAddress || '123 Main Street',
+      status: 'new',
+      source: 'widget',
+      contractor_id: 1,
+      created_at: new Date().toISOString(),
+      latest_quote: {
+        id: Date.now(),
+        total_price: totalPrice,
+        selected_tier: selectedTier,
+        roof_size_sqft: Math.round(roofArea),
+        price_per_sqft: selectedTierData?.price || 8.75,
+        created_at: new Date().toISOString()
+      }
+    };
+    
+    // Generate and download the PDF
+    const pdf = generateLeadQuotePDF(leadData);
+    const fileName = `roof-quote-${firstName.toLowerCase() || 'customer'}-${new Date().toISOString().split('T')[0]}.pdf`;
+    pdf.save(fileName);
   };
   
   const handleAddressInput = useCallback(async (value: string) => {
@@ -278,31 +337,6 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
     // Apply pitch multiplier to the price
     const multiplier = pitchMultipliers[selectedPitch];
     return Math.round(roofArea * pricePerSqFt * multiplier);
-  };
-  
-  const getTierData = () => {
-    if (!pricingData) return {};
-    
-    return {
-      good: {
-        name: pricingData.good_tier_name,
-        price: pricingData.good_tier_price,
-        warranty: pricingData.good_tier_warranty,
-        features: pricingData.good_tier_features
-      },
-      better: {
-        name: pricingData.better_tier_name,
-        price: pricingData.better_tier_price,
-        warranty: pricingData.better_tier_warranty,
-        features: pricingData.better_tier_features
-      },
-      best: {
-        name: pricingData.best_tier_name,
-        price: pricingData.best_tier_price,
-        warranty: pricingData.best_tier_warranty,
-        features: pricingData.best_tier_features
-      }
-    };
   };
 
   const renderHeader = () => (
@@ -953,8 +987,10 @@ const WidgetFlow = ({ embedded = false }: WidgetFlowProps) => {
         
         <div className="mt-4">
           <button
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 hover:shadow-lg transition-all duration-200 font-medium"
+            onClick={handleDownloadProposal}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 hover:shadow-lg transition-all duration-200 font-medium flex items-center gap-2 mx-auto"
           >
+            <Download className="w-5 h-5" />
             Download My Proposal
           </button>
         </div>
