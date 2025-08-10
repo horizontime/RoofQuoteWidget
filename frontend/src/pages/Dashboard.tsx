@@ -1,5 +1,5 @@
 import Card from '../components/Card';
-import { TrendingUp, FileText, DollarSign, Users, RefreshCw } from 'lucide-react';
+import { TrendingUp, DollarSign, Users, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { analyticsAPI } from '../services/api';
@@ -177,7 +177,6 @@ const Dashboard = () => {
 
   const stats = [
     { label: 'Total Leads', value: statsData.totalLeads.toString(), icon: Users, change: '+12%' },
-    { label: 'Quotes Generated', value: statsData.quotesGenerated.toString(), icon: FileText, change: '+8%' },
     { label: 'Conversion Rate', value: `${statsData.conversionRate}%`, icon: TrendingUp, change: '+3%' },
     { label: 'Avg. Quote Value', value: `$${statsData.avgQuoteValue.toLocaleString()}`, icon: DollarSign, change: '+15%' }
   ];
@@ -199,7 +198,7 @@ const Dashboard = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {stats.map((stat, index) => {
           const Icon = stat.icon;
           return (
