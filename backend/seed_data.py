@@ -3,14 +3,17 @@ from database import SessionLocal, engine
 from models import Contractor, Pricing, Branding, Template, Shingle, WidgetSettings, Lead, Quote
 import uuid
 import logging
+import random
 from datetime import datetime, timedelta
+from faker import Faker
 
 logger = logging.getLogger(__name__)
+fake = Faker()
 
-def seed_database():
+def seed_database(force=False):
     db = SessionLocal()
     try:
-        if db.query(Contractor).first():
+        if not force and db.query(Contractor).first():
             logger.info("Database already seeded, skipping...")
             return
         
@@ -109,97 +112,98 @@ def seed_database():
             shingle = Shingle(**shingle_data)
             db.add(shingle)
         
-        # Create leads with different timestamps
+        # Create 75 leads with different timestamps and values
         now = datetime.utcnow()
-        sample_leads = [
-            {
-                "contractor_id": contractor.id,
-                "name": "John Smith",
-                "email": "john.smith@email.com",
-                "phone": "555-0101",
-                "address": "456 Oak St, Dallas, TX 75202",
-                "status": "new",
-                "source": "widget",
-                "additional_notes": "Interested in premium shingles",
-                "created_at": now - timedelta(minutes=5)  # 5 minutes ago
-            },
-            {
-                "contractor_id": contractor.id,
-                "name": "Sarah Johnson",
-                "email": "sarah.j@email.com",
-                "phone": "555-0102",
-                "address": "789 Pine Ave, Dallas, TX 75203",
-                "status": "contacted",
-                "source": "widget",
-                "additional_notes": "Requested quote for architectural shingles",
-                "created_at": now - timedelta(hours=2)  # 2 hours ago
-            },
-            {
-                "contractor_id": contractor.id,
-                "name": "Mike Wilson",
-                "email": "mike.w@email.com",
-                "phone": "555-0103",
-                "address": "321 Elm Dr, Dallas, TX 75204",
-                "status": "quoted",
-                "source": "widget",
-                "additional_notes": "Comparing multiple contractors",
-                "created_at": now - timedelta(days=1)  # 1 day ago
-            },
-            {
-                "contractor_id": contractor.id,
-                "name": "Emily Davis",
-                "email": "emily.d@email.com",
-                "phone": "555-0104",
-                "address": "654 Maple Ave, Dallas, TX 75205",
-                "status": "converted",
-                "source": "widget",
-                "additional_notes": "Signed contract for full roof replacement",
-                "created_at": now - timedelta(days=3)  # 3 days ago
-            },
-            {
-                "contractor_id": contractor.id,
-                "name": "Robert Brown",
-                "email": "robert.b@email.com",
-                "phone": "555-0105",
-                "address": "987 Cedar Ln, Dallas, TX 75206",
-                "status": "quoted",
-                "source": "widget",
-                "additional_notes": "Requested GAF Timberline HDZ quote",
-                "created_at": now - timedelta(weeks=1)  # 1 week ago
-            },
-            {
-                "contractor_id": contractor.id,
-                "name": "Lisa Anderson",
-                "email": "lisa.a@email.com",
-                "phone": "555-0106",
-                "address": "246 Birch St, Dallas, TX 75207",
-                "status": "new",
-                "source": "widget",
-                "additional_notes": "Emergency repair needed",
-                "created_at": now - timedelta(weeks=2)  # 2 weeks ago
-            }
+        statuses = ["new", "contacted", "quoted", "converted", "lost"]
+        tiers = ["good", "better", "best"]
+        sources = ["widget", "website", "referral", "google_ads"]
+        
+        sample_notes = [
+            "Interested in premium shingles",
+            "Requested quote for architectural shingles",
+            "Comparing multiple contractors",
+            "Signed contract for full roof replacement",
+            "Requested GAF Timberline HDZ quote",
+            "Emergency repair needed",
+            "Looking for eco-friendly options",
+            "Wants financing information",
+            "Storm damage repair needed",
+            "Insurance claim assistance required",
+            "Multiple property owner",
+            "Commercial property quote",
+            "Historic home restoration",
+            "Solar panel compatible roofing",
+            "Budget-conscious customer"
         ]
         
-        for lead_data in sample_leads:
+        for i in range(75):
+            # Generate realistic time distributions
+            if i < 5:  # Last 24 hours
+                created_at = now - timedelta(hours=random.randint(1, 24))
+            elif i < 15:  # Last week
+                created_at = now - timedelta(days=random.randint(1, 7))
+            elif i < 35:  # Last month
+                created_at = now - timedelta(days=random.randint(7, 30))
+            else:  # Older leads
+                created_at = now - timedelta(days=random.randint(30, 90))
+            
+            # Generate varied roof sizes (1000-5000 sqft)
+            roof_size = random.randint(1000, 5000)
+            roof_squares = roof_size / 100
+            
+            # Select tier with weighted distribution
+            tier_weights = {"good": 0.4, "better": 0.45, "best": 0.15}
+            selected_tier = random.choices(
+                list(tier_weights.keys()),
+                weights=list(tier_weights.values())
+            )[0]
+            
+            # Calculate prices based on tier
+            if selected_tier == "good":
+                price_per_sqft = 6.50
+            elif selected_tier == "better":
+                price_per_sqft = 8.75
+            else:  # best
+                price_per_sqft = 12.00
+            
+            base_price = roof_size * price_per_sqft
+            removal_cost = roof_size * 1.50
+            permit_cost = 350.00
+            total_price = base_price + removal_cost + permit_cost
+            
+            # Generate lead data
+            lead_data = {
+                "contractor_id": contractor.id,
+                "name": fake.name(),
+                "email": fake.email(),
+                "phone": fake.phone_number()[:12],  # Limit phone length
+                "address": f"{fake.street_address()}, Dallas, TX {random.randint(75201, 75299)}",
+                "status": random.choice(statuses),
+                "source": random.choice(sources),
+                "additional_notes": random.choice(sample_notes),
+                "created_at": created_at
+            }
+            
             lead = Lead(**lead_data)
             db.add(lead)
             db.flush()
             
+            # Create corresponding quote with varied values
             quote = Quote(
                 lead_id=lead.id,
                 address=lead.address,
-                roof_size_sqft=2500,
-                selected_tier="better",
-                base_price=21875.00,
-                removal_cost=3750.00,
-                permit_cost=350.00,
-                total_price=25975.00,
-                created_at=lead.created_at,  # Use same timestamp as lead
+                roof_size_sqft=roof_size,
+                selected_tier=selected_tier,
+                base_price=round(base_price, 2),
+                removal_cost=round(removal_cost, 2),
+                permit_cost=permit_cost,
+                total_price=round(total_price, 2),
+                created_at=created_at,
                 quote_data={
-                    "roof_squares": 25,
-                    "complexity": "moderate",
-                    "pitch": "6/12",
-                    "layers": 1
+                    "roof_squares": roof_squares,
+                    "complexity": random.choice(["simple", "moderate", "complex"]),
+                    "pitch": random.choice(["4/12", "5/12", "6/12", "7/12", "8/12"]),
+                    "layers": random.randint(1, 3)
                 }
             )
             db.add(quote)
@@ -213,7 +217,32 @@ def seed_database():
     finally:
         db.close()
 
+def clear_and_reseed():
+    """Clear all data and reseed the database"""
+    db = SessionLocal()
+    try:
+        logger.info("Clearing existing data...")
+        # Delete in correct order to respect foreign key constraints
+        db.query(Quote).delete()
+        db.query(Lead).delete()
+        db.query(WidgetSettings).delete()
+        db.query(Template).delete()
+        db.query(Branding).delete()
+        db.query(Pricing).delete()
+        db.query(Shingle).delete()
+        db.query(Contractor).delete()
+        db.commit()
+        logger.info("All data cleared successfully!")
+    except Exception as e:
+        logger.error(f"Error clearing database: {e}")
+        db.rollback()
+    finally:
+        db.close()
+    
+    # Now reseed with force=True
+    seed_database(force=True)
+
 if __name__ == "__main__":
     from database import Base
     Base.metadata.create_all(bind=engine)
-    seed_database()
+    clear_and_reseed()
