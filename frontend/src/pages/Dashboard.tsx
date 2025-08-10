@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { analyticsAPI } from '../services/api';
 import type { Lead } from '../services/api';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -15,6 +16,12 @@ const Dashboard = () => {
     conversionRate: 0,
     avgQuoteValue: 0
   });
+  const [conversionData, setConversionData] = useState([
+    { stage: 'Total Leads', count: 0, percentage: 100, color: '#3b82f6' },
+    { stage: 'Quoted', count: 0, percentage: 0, color: '#8b5cf6' },
+    { stage: 'Contacted', count: 0, percentage: 0, color: '#f59e0b' },
+    { stage: 'Converted', count: 0, percentage: 0, color: '#10b981' }
+  ]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -46,12 +53,26 @@ const Dashboard = () => {
           conversionRate: Math.round(conversionRate),
           avgQuoteValue: Math.round(stats.summary.average_quote_value)
         });
+        
+        // Update conversion funnel data
+        const quoted = stats.lead_status.quoted || 0;
+        const contacted = stats.lead_status.contacted || 0;
+        const converted = stats.lead_status.converted || 0;
+        
+        setConversionData([
+          { stage: 'Total Leads', count: totalLeads, percentage: 100, color: '#3b82f6' },
+          { stage: 'Quoted', count: quoted, percentage: totalLeads > 0 ? Math.round((quoted / totalLeads) * 100) : 0, color: '#8b5cf6' },
+          { stage: 'Contacted', count: contacted, percentage: totalLeads > 0 ? Math.round((contacted / totalLeads) * 100) : 0, color: '#f59e0b' },
+          { stage: 'Converted', count: converted, percentage: totalLeads > 0 ? Math.round((converted / totalLeads) * 100) : 0, color: '#10b981' }
+        ]);
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);
         // If stats API fails, calculate from leads if available
         if (leads && leads.length > 0) {
           const totalLeads = leads.length;
           const quotesGenerated = leads.filter((lead: Lead) => lead.latest_quote).length;
+          const quotedLeads = leads.filter((lead: Lead) => lead.status === 'quoted').length;
+          const contactedLeads = leads.filter((lead: Lead) => lead.status === 'contacted').length;
           const convertedLeads = leads.filter((lead: Lead) => lead.status === 'converted').length;
           const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
           
@@ -66,6 +87,14 @@ const Dashboard = () => {
             conversionRate: Math.round(conversionRate),
             avgQuoteValue: Math.round(avgQuoteValue)
           });
+          
+          // Update conversion funnel data from leads
+          setConversionData([
+            { stage: 'Total Leads', count: totalLeads, percentage: 100, color: '#3b82f6' },
+            { stage: 'Quoted', count: quotedLeads, percentage: totalLeads > 0 ? Math.round((quotedLeads / totalLeads) * 100) : 0, color: '#8b5cf6' },
+            { stage: 'Contacted', count: contactedLeads, percentage: totalLeads > 0 ? Math.round((contactedLeads / totalLeads) * 100) : 0, color: '#f59e0b' },
+            { stage: 'Converted', count: convertedLeads, percentage: totalLeads > 0 ? Math.round((convertedLeads / totalLeads) * 100) : 0, color: '#10b981' }
+          ]);
         }
       }
     } catch (error) {
@@ -187,23 +216,38 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card title="Quick Setup">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <span className="text-sm font-medium">Pricing Configuration</span>
-              <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Complete</span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <span className="text-sm font-medium">Brand Customization</span>
-              <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">In Progress</span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <span className="text-sm font-medium">Widget Deployment</span>
-              <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">Pending</span>
-            </div>
-            <button className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors">
-              Continue Setup
-            </button>
+        <Card title="Lead Conversion Funnel">
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={conversionData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="stage" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip 
+                  formatter={(value: any, name: string) => {
+                    if (name === 'count') {
+                      const dataPoint = conversionData.find(d => d.count === value);
+                      return [`${value} (${dataPoint?.percentage}%)`, 'Leads'];
+                    }
+                    return [value, name];
+                  }}
+                  contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+                />
+                <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                  {conversionData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-4">
+            {conversionData.map((item) => (
+              <div key={item.stage} className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded" style={{ backgroundColor: item.color }} />
+                <span className="text-sm text-gray-600">{item.stage}: {item.percentage}%</span>
+              </div>
+            ))}
           </div>
         </Card>
 
