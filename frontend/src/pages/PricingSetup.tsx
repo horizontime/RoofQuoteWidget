@@ -8,7 +8,6 @@ const PricingSetup = () => {
   const [pricing, setPricing] = useState<PricingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [editingTier, setEditingTier] = useState<string | null>(null);
-  const [editingAdditional, setEditingAdditional] = useState(false);
   const [tempValues, setTempValues] = useState<Partial<PricingData>>({});
 
   useEffect(() => {
@@ -99,31 +98,6 @@ const PricingSetup = () => {
     });
   };
 
-  const handleAdditionalEdit = () => {
-    setEditingAdditional(true);
-    if (pricing) {
-      setTempValues({
-        removal_price: pricing.removal_price,
-        permit_price: pricing.permit_price,
-      });
-    }
-  };
-
-  const handleAdditionalSave = async () => {
-    try {
-      const updatedPricing = await pricingAPI.update(tempValues);
-      setPricing(updatedPricing);
-      setEditingAdditional(false);
-      setTempValues({});
-    } catch (error) {
-      console.error('Failed to save additional pricing:', error);
-    }
-  };
-
-  const handleAdditionalCancel = () => {
-    setEditingAdditional(false);
-    setTempValues({});
-  };
 
   if (loading) {
     return <div className="text-center py-8">Loading pricing data...</div>;
@@ -316,87 +290,6 @@ const PricingSetup = () => {
           </Card>
         ))}
       </div>
-
-      <Card>
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Additional Pricing Options</h3>
-          {!editingAdditional && (
-            <button
-              onClick={handleAdditionalEdit}
-              className="text-green-600 hover:text-green-700 flex items-center gap-2"
-            >
-              <Edit2 className="w-4 h-4" />
-              Edit
-            </button>
-          )}
-        </div>
-        
-        {editingAdditional ? (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tear-off Cost (per sq ft)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={tempValues.removal_price || ''}
-                  onChange={(e) => setTempValues({...tempValues, removal_price: parseFloat(e.target.value)})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Permit Cost (flat fee)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={tempValues.permit_price || ''}
-                  onChange={(e) => setTempValues({...tempValues, permit_price: parseFloat(e.target.value)})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={handleAdditionalSave}
-                className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
-              >
-                <Save className="w-4 h-4" />
-                Save Changes
-              </button>
-              <button
-                onClick={handleAdditionalCancel}
-                className="bg-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-400 transition-colors flex items-center gap-2"
-              >
-                <X className="w-4 h-4" />
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tear-off Cost (per sq ft)
-              </label>
-              <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
-                ${pricing.removal_price.toFixed(2)}
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Permit Cost (flat fee)
-              </label>
-              <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
-                ${pricing.permit_price.toFixed(2)}
-              </div>
-            </div>
-          </div>
-        )}
-      </Card>
     </div>
   );
 };
