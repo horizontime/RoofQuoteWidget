@@ -144,11 +144,15 @@ pip install -r requirements.txt
 python seed_data.py
 ```
 
-5. Configure environment variables (optional):
+5. Configure environment variables (backend):
 ```bash
 # Create a .env file in the backend directory
-GOOGLE_MAPS_API_KEY=your_api_key_here
-SENDGRID_API_KEY=your_sendgrid_key_here
+DATABASE_URL=sqlite:///./roof_quote_pro.db
+ENVIRONMENT=development
+CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+SECRET_KEY=your-secret-key
+UPLOAD_DIR=uploads
+MAX_UPLOAD_SIZE=5242880
 ```
 
 ### Frontend Setup
@@ -162,7 +166,14 @@ cd frontend
 ```bash
 npm install
 ```
-
+3. Configure environment variables (frontend):
+```bash
+# Create a .env file in the front directory
+# Places API
+VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
+# Backend API URL
+VITE_API_URL=http://localhost:8000
+```
 ## Running the Application
 
 ### Start the Backend Server
@@ -248,6 +259,3 @@ Please follow the commit standards outlined in `docs/git-commit-standards.md`.
 
 Proprietary - All rights reserved
 
-## Support
-
-For issues or questions, please contact the development team.
