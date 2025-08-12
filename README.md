@@ -2,6 +2,22 @@
 
 An instant roof quote widget system that enables roofing contractors to provide immediate, accurate quotes to homeowners through an embeddable widget.
 
+## Demo Screenshots
+
+[Dashboard](/demo-pics/page1-dashboard.PNG)  
+[Pricing](/demo-pics/page2-pricing.PNG)  
+[Branding](/demo-pics/page3-branding.PNG)  
+[Templates](/demo-pics/page4-templates.PNG)  
+[Widget](/demo-pics/page5-widget.PNG)  
+[Leads](/demo-pics/page6-leads.PNG)  
+[Leads Email Quote](/demo-pics/page6-leads-emailquote.PNG)  
+[Lead Details](/demo-pics/page6-leads-leaddetails.PNG)  
+[Widget Flow 1](/demo-pics/widgetflow-1.PNG)  
+[Widget Flow 2](/demo-pics/widgetflow-2.PNG)  
+[Widget Flow 3](/demo-pics/widgetflow-3.PNG)  
+[Widget Flow 4](/demo-pics/widgetflow-4.PNG)  
+[Widget Flow 5](/demo-pics/widgetflow-5.PNG)
+
 ## Overview
 
 Roof Quote Pro allows contractors to:
@@ -86,8 +102,6 @@ roof-quote-pro/
 │   ├── PRD-rephrased.md     # Simplified PRD
 │   └── git-commit-standards.md # Git conventions
 │
-├── CLAUDE.md                 # Claude AI instructions
-├── INTEGRATION_GUIDE.md      # Integration documentation
 └── README.md                 # This file
 ```
 
@@ -123,28 +137,13 @@ roof-quote-pro/
 cd backend
 ```
 
-2. Create a virtual environment (recommended):
-```bash
-python -m venv venv
-
-# On Windows
-venv\Scripts\activate
-
-# On macOS/Linux
-source venv/bin/activate
-```
-
-3. Install Python dependencies:
+2. Install Python dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-4. Initialize the database:
-```bash
-python seed_data.py
-```
 
-5. Configure environment variables (backend):
+3. Configure environment variables (backend):
 ```bash
 # Create a .env file in the backend directory
 DATABASE_URL=sqlite:///./roof_quote_pro.db
@@ -181,10 +180,7 @@ VITE_API_URL=http://localhost:8000
 From the `backend` directory:
 
 ```bash
-# Development mode with auto-reload
-uvicorn main:app --reload --port 8000
 
-# Or using Python
 python -m uvicorn main:app --reload --port 8000
 ```
 
@@ -202,22 +198,6 @@ npm run dev
 
 The application will be available at: http://localhost:5173
 
-## Development Commands
-
-### Frontend
-```bash
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run lint         # Run ESLint
-npm run preview      # Preview production build
-```
-
-### Backend
-```bash
-uvicorn main:app --reload     # Run with auto-reload
-python seed_data.py           # Seed database with sample data
-python reset_database.py      # Reset database
-```
 
 ## API Endpoints
 
@@ -234,28 +214,8 @@ The backend provides RESTful API endpoints:
 
 Full API documentation is available at http://localhost:8000/docs when the backend is running.
 
-## Deployment
-
-### Production Build
-
-Frontend:
-```bash
-cd frontend
-npm run build
-# Output will be in frontend/dist/
-```
-
-Backend:
-```bash
-cd backend
-uvicorn main:app --host 0.0.0.0 --port 8000
-```
 
 ## Contributing
 
 Please follow the commit standards outlined in `docs/git-commit-standards.md`.
-
-## License
-
-Proprietary - All rights reserved
 
